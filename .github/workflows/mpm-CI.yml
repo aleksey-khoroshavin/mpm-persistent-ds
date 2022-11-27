@@ -18,7 +18,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
       - name: Run build with Gradle Wrapper
         run: ./gradlew build -x test
-  test-maven:
+  test:
     needs: build-gradle
     runs-on: windows-latest
     steps:
