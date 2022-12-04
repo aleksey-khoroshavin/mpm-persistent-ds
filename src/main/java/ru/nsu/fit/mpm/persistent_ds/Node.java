@@ -1,34 +1,29 @@
 package ru.nsu.fit.mpm.persistent_ds;
+
+import java.util.ArrayList;
 import java.util.List;
 
 public class Node<E> {
 
-    private int width = 4;
-    private E[] data;
-    private Node<E> parent;
-    private List<Node<E>> children;
+    public static int bitPerNode = 2;
+    public static int width;
+    public List<E> data;
+    public List<Node<E>> children = new ArrayList<>();
+    public Node<E> parent;
 
-    public E[] getData() {
-        return data;
+    static {
+        width = (int) Math.pow(2, bitPerNode);
     }
 
-    public void setData(E[] data) {
-        this.data = data;
-    }
-
-    public Node<E> getParent() {
-        return parent;
-    }
-
-    public void setParent(Node<E> parent) {
-        this.parent = parent;
+    public void createChildren() {
+        Node<E> node = new Node<E>();
+        node.parent = this;
+        if (children.size() < width) {
+            children.add(node);
+        }
     }
 
     public List<Node<E>> getChildren() {
         return children;
-    }
-
-    public void setChildren(List<Node<E>> children) {
-        this.children = children;
     }
 }
