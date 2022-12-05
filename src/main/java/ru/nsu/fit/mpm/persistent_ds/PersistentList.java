@@ -1,23 +1,24 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Stack;
 
-public class PersistentList<E> implements List<E> {
-
-    public static int depth = 2;
-    public static int bitPerLevel = Node.bitPerNode * depth;
-    public static int mask = (int) Math.pow(2, Node.bitPerNode) - 1;
-
-    public Node<LinkedData<E>> root;
-    private int count = 0;
+public class PersistentList<E> extends AbstractPersistentCollection<E> {
+    public Head<LinkedData<E>> head;
+    public Stack<Head<LinkedData<E>>> undo = new Stack<>();
+    public Stack<Head<LinkedData<E>>> redo = new Stack<>();
 
     public LinkedData<E> first;
     public LinkedData<E> last;
 
     public PersistentList() {
-        root = new Node<>();
-        root.parent = null;
-        createBranch(root, depth);
+        head = new Head<>();
+        undo.push(head);
+        createBranch(head.root, depth);
     }
 
     private LinkedData<E> addFirst(E e) {
@@ -45,40 +46,61 @@ public class PersistentList<E> implements List<E> {
     }
 
     @Override
+    public void undo() {
+        if (!undo.empty()) {
+            redo.push(undo.pop());
+        }
+    }
+
+    @Override
+    public void redo() {
+        if (!redo.empty()) {
+            undo.push(redo.pop());
+        }
+    }
+
+    @Override
     public boolean add(E element) {
         int level = bitPerLevel - Node.bitPerNode;
-        Node<LinkedData<E>> node = root;
+        Node<LinkedData<E>> currentNode = head.root;
 
         while (level > 0) {
-            int index = (count >> level) & mask;
-            if (node.children.size() - 1 != index) {
-                node.createChildren();
+            int index = (head.count >> level) & mask;
+            if (currentNode.children.size() - 1 != index) {
+                currentNode.createChildren();
             }
-            node = node.children.get(index);
+            currentNode = currentNode.children.get(index);
             level -= Node.bitPerNode;
         }
 
-        int index = count & mask;
+        int index = head.count & mask;
 
-        if (node.data == null) {
-            node.data = new ArrayList<>();
+        if (currentNode.data == null) {
+            currentNode.data = new ArrayList<>();
         }
 
-        node.data.add(index, addLast(element));
-        count++;
+        currentNode.data.add(index, addLast(element));
+        head.count++;
+
+        Head<LinkedData<E>> newHead = new Head<>(head);
+        undo.push(newHead);
+        while (!redo.empty()) {
+            redo.pop();
+        }
+
         return true;
     }
 
 
     @Override
     public E get(int index) {
-        if (index > count) {
+        if (index > head.count) {
             throw new IndexOutOfBoundsException();
         } else if (index == 0) {
             return first.data;
-        } else if (index == count) {
+        } else if (index == head.count) {
             return last.data;
-        } else if ((count / 2) > index) {
+        } else if ((head.count / 2) > index) {
             LinkedData<E> currentLinkedData = first;
             for (int i = 0; i < index; i++) {
                 currentLinkedData = currentLinkedData.getNext();
@@ -86,7 +108,7 @@ public class PersistentList<E> implements List<E> {
             return currentLinkedData.data;
         } else {
             LinkedData<E> currentLinkedData = last;
-            for (int i = count - 1; i > index; i--) {
+            for (int i = head.count - 1; i > index; i--) {
                 currentLinkedData = currentLinkedData.getPrev();
             }
             return currentLinkedData.data;
@@ -95,12 +117,12 @@ public class PersistentList<E> implements List<E> {
 
     @Override
     public int size() {
-        return count;
+        return head.count;
     }
 
     @Override
     public boolean isEmpty() {
-        return count <= 0;
+        return head.count <= 0;
     }
 
     @Override
@@ -115,7 +137,7 @@ public class PersistentList<E> implements List<E> {
 
     @Override
     public Object[] toArray() {
-        Object[] objects = new Object[count];
+        Object[] objects = new Object[head.count];
         for (int i = 0; i < objects.length; i++) {
             objects[i] = this.get(i);
         }
