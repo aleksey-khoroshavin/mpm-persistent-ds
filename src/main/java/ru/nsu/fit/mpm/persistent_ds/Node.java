@@ -5,7 +5,7 @@ import java.util.List;
 
 public class Node<E> {
 
-    public static int bitPerNode = 2;
+    public static int bitPerNode = 1;
     public static int width;
     public List<E> data;
     public List<Node<E>> children = new ArrayList<>();
