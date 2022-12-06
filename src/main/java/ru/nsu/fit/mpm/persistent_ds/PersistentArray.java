@@ -1,11 +1,6 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Stack;
+import java.util.*;
 
 public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
@@ -34,34 +29,58 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
     }
 
     @Override
-    public boolean add(E element) {
+    public boolean add(E newElement) {
+        Head<E> newHead = new Head<>(getCurrentHead(), +1);
+        Node<E> currentNode = newHead.root;
+        Integer level = Node.bitPerNode * (depth - 1);
+        while (level > 0) {
+            Integer index = ((head.size - 1) >> level) & mask;
+            Node<E> tmp = currentNode.child.get(index);
+            Node<E> newNode = new Node<>(tmp);
+            currentNode.child.set(index, newNode);
+            currentNode = newNode;
+            level -= Node.bitPerNode;
+        }
+        currentNode.data.add(newElement);
+
+        return true;
+
+        //        if (getCurrentHead().size % Node.width != 0) {
+        //            return true;
+        //        } else {
+        //            return true;
+        //        }
+    }
+
+
+    public boolean add2(E element) {
         int level = bitPerLevel - Node.bitPerNode;
         Node<E> currentNode = head.root;
 
         while (level > 0) {
-            int index = (head.count >> level) & mask;
-            if (currentNode.children.size() - 1 != index) {
+            int index = (head.size >> level) & mask;
+            if (currentNode.child.size() - 1 != index) {
                 currentNode.createChildren();
             }
-            System.out.println(index + " " + currentNode.children.size());
-            currentNode = currentNode.children.get(index);
+            System.out.println(index + " " + currentNode.child.size());
+            currentNode = currentNode.child.get(index);
             level -= Node.bitPerNode;
         }
 
-        int index = head.count & mask;
+        int index = head.size & mask;
 
         if (currentNode.data == null) {
             currentNode.data = new ArrayList<>();
         }
 
         currentNode.data.add(index, element);
-        head.count++;
+        head.size++;
 
-        Head<E> newHead = new Head<>(head);
-        undo.push(newHead);
-        while (!redo.empty()) {
-            redo.pop();
-        }
+//        Head<E> newHead = new Head<>(getCurrentHead());
+//        undo.push(newHead);
+//        while (!redo.empty()) {
+//            redo.pop();
+//        }
 
         return true;
     }
@@ -73,7 +92,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
         while (level > 0) {
             int tempIndex = (index >> level) & mask;
-            node = node.children.get(tempIndex);
+            node = node.child.get(tempIndex);
             level -= Node.bitPerNode;
         }
 
@@ -82,12 +101,12 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public int size() {
-        return head.count;
+        return head.size;
     }
 
     @Override
     public boolean isEmpty() {
-        return head.count <= 0;
+        return head.size <= 0;
     }
 
     @Override
@@ -102,7 +121,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public Object[] toArray() {
-        Object[] objects = new Object[head.count];
+        Object[] objects = new Object[head.size];
         for (int i = 0; i < objects.length; i++) {
             objects[i] = this.get(i);
         }
@@ -196,7 +215,11 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
     public void createBranch(Node<E> node, int depth) {
         node.createChildren();
         if (depth > 0) {
-            createBranch(node.getChildren().get(0), --depth);
+            createBranch(node.getChild().get(0), --depth);
         }
+    }
+
+    private Head<E> getCurrentHead() {
+        return this.undo.peek();
     }
 }

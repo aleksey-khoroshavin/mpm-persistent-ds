@@ -1,11 +1,6 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Stack;
+import java.util.*;
 
 public class PersistentList<E> extends AbstractPersistentCollection<E> {
     public Head<LinkedData<E>> head;
@@ -65,25 +60,25 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
         Node<LinkedData<E>> currentNode = head.root;
 
         while (level > 0) {
-            int index = (head.count >> level) & mask;
-            if (currentNode.children.size() - 1 != index) {
+            int index = (head.size >> level) & mask;
+            if (currentNode.child.size() - 1 != index) {
                 currentNode.createChildren();
             }
-            currentNode = currentNode.children.get(index);
+            currentNode = currentNode.child.get(index);
             level -= Node.bitPerNode;
         }
 
-        int index = head.count & mask;
+        int index = head.size & mask;
 
         if (currentNode.data == null) {
             currentNode.data = new ArrayList<>();
         }
 
         currentNode.data.add(index, addLast(element));
-        head.count++;
+        head.size++;
 
-        Head<LinkedData<E>> newHead = new Head<>(head);
-        undo.push(newHead);
+//        Head<LinkedData<E>> newHead = new Head<>(head);
+//        undo.push(newHead);
         while (!redo.empty()) {
             redo.pop();
         }
@@ -94,13 +89,13 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public E get(int index) {
-        if (index > head.count) {
+        if (index > head.size) {
             throw new IndexOutOfBoundsException();
         } else if (index == 0) {
             return first.data;
-        } else if (index == head.count) {
+        } else if (index == head.size) {
             return last.data;
-        } else if ((head.count / 2) > index) {
+        } else if ((head.size / 2) > index) {
             LinkedData<E> currentLinkedData = first;
             for (int i = 0; i < index; i++) {
                 currentLinkedData = currentLinkedData.getNext();
@@ -108,7 +103,7 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
             return currentLinkedData.data;
         } else {
             LinkedData<E> currentLinkedData = last;
-            for (int i = head.count - 1; i > index; i--) {
+            for (int i = head.size - 1; i > index; i--) {
                 currentLinkedData = currentLinkedData.getPrev();
             }
             return currentLinkedData.data;
@@ -117,12 +112,12 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public int size() {
-        return head.count;
+        return head.size;
     }
 
     @Override
     public boolean isEmpty() {
-        return head.count <= 0;
+        return head.size <= 0;
     }
 
     @Override
@@ -137,7 +132,7 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public Object[] toArray() {
-        Object[] objects = new Object[head.count];
+        Object[] objects = new Object[head.size];
         for (int i = 0; i < objects.length; i++) {
             objects[i] = this.get(i);
         }
@@ -231,7 +226,7 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
     public void createBranch(Node<LinkedData<E>> node, int depth) {
         node.createChildren();
         if (depth > 0) {
-            createBranch(node.getChildren().get(0), --depth);
+            createBranch(node.getChild().get(0), --depth);
         }
     }
 
