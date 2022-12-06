@@ -2,16 +2,15 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 public class Head<E> {
     public Node<E> root;
-    public int count = 0;
+    public int size = 0;
 
     public Head() {
         this.root = new Node<>();
-        root.parent = null;
-        this.count = 0;
+        this.size = 0;
     }
 
-    public Head(Head<E> prevHead) {
-        this.root = prevHead.root;
-        this.count = prevHead.count;
+    public Head(Head<E> prevHead, Integer sizeDelta) {
+        this.root = new Node<>(prevHead.root);
+        this.size = prevHead.size + sizeDelta;
     }
 }
