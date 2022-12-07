@@ -1,19 +1,19 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Stack;
 
 public class PersistentList<E> extends AbstractPersistentCollection<E> {
     public Head<LinkedData<E>> head;
     public Stack<Head<LinkedData<E>>> undo = new Stack<>();
     public Stack<Head<LinkedData<E>>> redo = new Stack<>();
-
     public LinkedData<E> first;
     public LinkedData<E> last;
 
     public PersistentList() {
-        head = new Head<>();
-        undo.push(head);
-        createBranch(head.root, depth);
     }
 
     private LinkedData<E> addFirst(E e) {
@@ -56,36 +56,8 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public boolean add(E element) {
-        int level = bitPerLevel - Node.bitPerNode;
-        Node<LinkedData<E>> currentNode = head.root;
-
-        while (level > 0) {
-            int index = (head.size >> level) & mask;
-            if (currentNode.child.size() - 1 != index) {
-                currentNode.createChildren();
-            }
-            currentNode = currentNode.child.get(index);
-            level -= Node.bitPerNode;
-        }
-
-        int index = head.size & mask;
-
-        if (currentNode.data == null) {
-            currentNode.data = new ArrayList<>();
-        }
-
-        currentNode.data.add(index, addLast(element));
-        head.size++;
-
-//        Head<LinkedData<E>> newHead = new Head<>(head);
-//        undo.push(newHead);
-        while (!redo.empty()) {
-            redo.pop();
-        }
-
         return true;
     }
-
 
     @Override
     public E get(int index) {
@@ -180,7 +152,6 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public void clear() {
-
     }
 
     @Override
@@ -190,7 +161,6 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public void add(int index, E element) {
-
     }
 
     @Override
@@ -221,13 +191,6 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
     @Override
     public List<E> subList(int fromIndex, int toIndex) {
         return null;
-    }
-
-    public void createBranch(Node<LinkedData<E>> node, int depth) {
-        node.createChildren();
-        if (depth > 0) {
-            createBranch(node.getChild().get(0), --depth);
-        }
     }
 
     private static class LinkedData<E> {

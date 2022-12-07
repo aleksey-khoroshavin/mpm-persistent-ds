@@ -1,8 +1,10 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
+import ru.nsu.fit.mpm.persistent_ds.nodes.Node;
+
 public class Head<E> {
     public Node<E> root;
-    public int size = 0;
+    public int size;
 
     public Head() {
         this.root = new Node<>();
