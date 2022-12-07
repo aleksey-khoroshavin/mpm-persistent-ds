@@ -1,15 +1,17 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-import ru.nsu.fit.mpm.persistent_ds.nodes.AbstractNode;
-
 import java.util.List;
 
 public abstract class AbstractPersistentCollection<E> implements UndoRedo, List<E> {
-    public int depth = 3;
-    public int bitPerLevel = AbstractNode.bitPerNode * depth;
-    public int mask = (int) Math.pow(2, AbstractNode.bitPerNode) - 1;
+    public final int depth;
+    public final int bitPerLevel;
+    public final int mask;
+    public final int maxSize;
 
-    public int maxSize() {
-        return (int) Math.pow(2, bitPerLevel);
+    public AbstractPersistentCollection(int depth) {
+        this.depth = depth;
+        bitPerLevel = Node.bitPerNode * depth;
+        mask = (int) Math.pow(2, Node.bitPerNode) - 1;
+        maxSize = (int) Math.pow(2, bitPerLevel);
     }
 }
