@@ -1,21 +1,16 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-import ru.nsu.fit.mpm.persistent_ds.nodes.AbstractNode;
+import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Stack;
+import java.util.*;
 
 public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
     private Stack<Head<E>> undo = new Stack<>();
     private Stack<Head<E>> redo = new Stack<>();
 
-    public PersistentArray() {
+    public PersistentArray(int depth) {
+        super(depth);
         Head<E> head = new Head<>();
         undo.push(head);
     }
@@ -34,39 +29,79 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         }
     }
 
-    @Override
-    public boolean add(E newElement) {
-        if (getCurrentHead().size == maxSize()) {
+    public E pop() throws NoSuchElementException {
+        if (getCurrentHead().size == 0) {
+            throw new NoSuchElementException("Array is empty");
+        }
+//        E result = get(getCurrentHead().size - 1);
+        Head<E> newHead = new Head<>(getCurrentHead(), -1);
+        undo.push(newHead);
+        redo.clear();
+        LinkedList<Pair<Node<E>, Integer>> path = new LinkedList<>();
+        path.add(new Pair<>(newHead.root, 0));
+        int level = Node.bitPerNode * (depth - 1);
+
+        System.out.print("[" + getCurrentHead().size + "]   ");
+        while (level > 0) {
+            int index = (newHead.size >> level) & mask;
+            System.out.print(index);
+            Node<E> tmp, newNode;
+
+            tmp = path.getLast().getKey().child.get(index);
+            newNode = new Node<>(tmp);
+            path.getLast().getKey().child.set(index, newNode);
+
+            path.add(new Pair<>(newNode, index));
+            level -= Node.bitPerNode;
+        }
+
+        int index = newHead.size & mask;
+        E result = path.getLast().getKey().value.remove(index);
+
+        for (int i = path.size() - 1; i >= 1; i--) {
+            Pair<Node<E>, Integer> elem = path.get(i);
+            if (elem.getKey().isEmpty()) {
+                path.get(i - 1).getKey().child.set(elem.getValue(), null);
+            } else {
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    public boolean conj(E newElement) {
+        if (getCurrentHead().size == maxSize) {
             return false;
         }
 
         Head<E> newHead = new Head<>(getCurrentHead(), +1);
         undo.push(newHead);
         redo.clear();
-        AbstractNode<E> currentNode = newHead.root;
-        int level = AbstractNode.bitPerNode * (depth - 1);
+        Node<E> currentNode = newHead.root;
+        int level = Node.bitPerNode * (depth - 1);
         System.out.print(newElement + "   ");
         while (level > 0) {
             int index = ((newHead.size - 1) >> level) & mask;
             System.out.print(index);
-            AbstractNode<E> tmp, newNode;
+            Node<E> tmp, newNode;
             if (currentNode.child == null) {
                 currentNode.child = new LinkedList<>();
-                newNode = new AbstractNode<>();
+                newNode = new Node<>();
                 currentNode.child.add(newNode);
             } else {
                 if (index == currentNode.child.size()) {
-                    newNode = new AbstractNode<>();
+                    newNode = new Node<>();
                     currentNode.child.add(newNode);
                 } else {
                     tmp = currentNode.child.get(index);
-                    newNode = new AbstractNode<>(tmp);
+                    newNode = new Node<>(tmp);
                     currentNode.child.set(index, newNode);
                 }
             }
 
             currentNode = newNode;
-            level -= AbstractNode.bitPerNode;
+            level -= Node.bitPerNode;
         }
         if (currentNode.value == null)
             currentNode.value = new ArrayList<>();
@@ -76,13 +111,18 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
     }
 
     @Override
+    public boolean add(E newElement) {
+        return conj(newElement);
+    }
+
+    @Override
     public E get(int index) {
-        int level = bitPerLevel - AbstractNode.bitPerNode;
-        AbstractNode<E> node = getCurrentHead().root;
+        int level = bitPerLevel - Node.bitPerNode;
+        Node<E> node = getCurrentHead().root;
         while (level > 0) {
             int tempIndex = (index >> level) & mask;
             node = node.child.get(tempIndex);
-            level -= AbstractNode.bitPerNode;
+            level -= Node.bitPerNode;
         }
         return node.value.get(index & mask);
     }
@@ -108,7 +148,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public Iterator<E> iterator() {
-        return null;
+        return new PersistentArrayIterator<E>();
     }
 
     @Override
@@ -161,6 +201,10 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public void clear() {
+        undo.clear();
+        redo.clear();
+        Head<E> head = new Head<>();
+        undo.push(head);
     }
 
     @Override
@@ -200,5 +244,24 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
     @Override
     public List<E> subList(int fromIndex, int toIndex) {
         return null;
+    }
+
+    public class PersistentArrayIterator<E> implements java.util.Iterator<E> {
+        int index = 0;
+
+        @Override
+        public boolean hasNext() {
+            return index < size();
+        }
+
+        @Override
+        public E next() {
+            return (E) get(index++);
+        }
+
+        @Override
+        public void remove() {
+
+        }
     }
 }

@@ -1,10 +1,6 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Stack;
+import java.util.*;
 
 public class PersistentList<E> extends AbstractPersistentCollection<E> {
     public Head<LinkedData<E>> head;
@@ -13,7 +9,8 @@ public class PersistentList<E> extends AbstractPersistentCollection<E> {
     public LinkedData<E> first;
     public LinkedData<E> last;
 
-    public PersistentList() {
+    public PersistentList(int depth) {
+        super(depth);
     }
 
     private LinkedData<E> addFirst(E e) {
