@@ -19,11 +19,15 @@ public class PersistentHashMap<K, V> {
 
     public V put(K key, V value) {
         int index = calculateIndex(key.hashCode());
-        for (Pair<K, V> pair : table.get(index)) {
+
+        for (int i = 0; i < table.get(index).size(); i++) {
+            Pair<K, V> pair = table.get(index).get(i);
             if (pair.getKey().equals(key)) {
-                return null;
+                table.get(index).set(i, new Pair<>(key, value));
+                return value;
             }
         }
+
         table.get(index).add(new Pair<>(key, value));
         return value;
     }
