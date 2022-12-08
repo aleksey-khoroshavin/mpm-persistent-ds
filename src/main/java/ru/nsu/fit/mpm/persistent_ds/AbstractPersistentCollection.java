@@ -18,6 +18,4 @@ public abstract class AbstractPersistentCollection<E> implements UndoRedo, List<
     public static double log(int N, int newBase) {
         return (Math.log(N) / Math.log(newBase));
     }
-
-
 }

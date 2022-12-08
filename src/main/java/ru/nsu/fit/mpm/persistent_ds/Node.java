@@ -18,6 +18,7 @@ public class Node<E> {
             child = new ArrayList<>();
             child.addAll(other.child);
         }
+
         if (other.value != null) {
             value = new ArrayList<>();
             value.addAll(other.value);
@@ -28,13 +29,17 @@ public class Node<E> {
         if ((child == null) && (value == null)) {
             return true;
         }
+
         boolean result = true;
+
         if ((child != null) && (!child.isEmpty())) {
             result = false;
         }
+
         if ((value != null) && (!value.isEmpty())) {
             result = false;
         }
+
         return result;
     }
 }
