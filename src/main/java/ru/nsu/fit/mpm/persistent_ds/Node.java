@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Node<E> {
-    public static int bitPerNode = 5;
+    public static int bitPerNode = 1;
     public static int width = (int) Math.pow(2, bitPerNode);
 
     public List<Node<E>> child;
@@ -25,13 +25,16 @@ public class Node<E> {
     }
 
     public boolean isEmpty() {
-        if ((child == null) && (value == null))
+        if ((child == null) && (value == null)) {
             return true;
+        }
         boolean result = true;
-        if ((child != null) && (!child.isEmpty()))
+        if ((child != null) && (!child.isEmpty())) {
             result = false;
-        if ((value != null) && (!value.isEmpty()))
+        }
+        if ((value != null) && (!value.isEmpty())) {
             result = false;
+        }
         return result;
     }
 }
