@@ -1,21 +1,34 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
+import java.util.Arrays;
 import java.util.Iterator;
 
 public class Main {
     public static void main(String[] args) {
-        PersistentArray<Integer> persistentArray = new PersistentArray<>(5);
+        PersistentArray<Integer> persistentArray = new PersistentArray<>(100);
         System.out.println("Max count: " + persistentArray.maxSize);
 
-        int count = 7;
-        for (int i = 0; i < count; i++) {
-            persistentArray.add(i);
-        }
-
         testUndoRedo(persistentArray);
-        testClear(persistentArray);
         testIterator(persistentArray);
         testPop(persistentArray);
+        testAPI(persistentArray);
+    }
+
+    private static void testAPI(PersistentArray<Integer> persistentArray) {
+        System.out.println("testAPI");
+        clearAndFill(persistentArray, 5);
+        persistentArray.add(8);
+        printArray(persistentArray);
+        System.out.println(Arrays.toString(
+                persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+        persistentArray.undo();
+
+        System.out.println(Arrays.toString(
+                persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+
+        for (Integer integer : persistentArray) {
+            System.out.print(integer + " ");
+        }
     }
 
     private static void testPop(PersistentArray<Integer> persistentArray) {
@@ -44,7 +57,6 @@ public class Main {
         printArray(persistentArray);
         persistentArray.redo();
         printArray(persistentArray);
-
         System.out.println("undo() undo() redo() redo()");
         persistentArray.undo();
         persistentArray.undo();
@@ -54,18 +66,9 @@ public class Main {
         printArray(persistentArray);
     }
 
-    private static void testClear(PersistentArray<Integer> persistentArray) {
-        System.out.println("testClear");
-        persistentArray.clear();
-        printArray(persistentArray);
-    }
-
     private static void testIterator(PersistentArray<Integer> persistentArray) {
         System.out.println("testIterator");
         clearAndFill(persistentArray, 5);
-        persistentArray.add(7);
-        persistentArray.add(3);
-        persistentArray.add(9);
         printArray(persistentArray);
         Iterator<Integer> i = persistentArray.iterator();
         System.out.println(i.next());
