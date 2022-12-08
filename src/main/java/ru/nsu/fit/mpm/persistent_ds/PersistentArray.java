@@ -42,8 +42,9 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
     }
 
     public E pop() throws NoSuchElementException {
-        if (getCurrentHead().size == 0)
+        if (getCurrentHead().size == 0) {
             throw new NoSuchElementException("Array is empty");
+        }
         Head<E> newHead = new Head<>(getCurrentHead(), -1);
         undo.push(newHead);
         redo.clear();
@@ -69,6 +70,51 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
                 break;
         }
         return result;
+    }
+
+    public boolean assoc(int index, E value) {
+        if (getCurrentHead().size == maxSize) {
+            return false;
+        }
+
+        Head<E> oldHead = getCurrentHead();
+        Node<E> copedNode = copyNode(oldHead, index, +1);
+
+        copedNode.value.add(index, value);
+        if (copedNode.value.size() > Node.width) {
+            copedNode.value.remove(copedNode.value.size() - 1);
+            for (int i = index + 1; i < oldHead.size; i++) {
+                conj(get(oldHead, i));
+            }
+        }
+
+        return true;
+    }
+
+    private Node<E> copyNode(Head<E> head, int insertIndex, int sizeDelta) {
+        if (getCurrentHead().size == maxSize) {
+            throw new IllegalStateException("array is full");
+        }
+
+        Head<E> newHead = new Head<>(head, sizeDelta);
+        undo.push(newHead);
+        redo.clear();
+        Node<E> currentNode = newHead.root;
+        int level = Node.bitPerNode * (depth - 1);
+
+        while (level > 0) {
+            int index = (insertIndex >> level) & mask;
+            Node<E> tmp, newNode;
+
+            tmp = currentNode.child.get(index);
+            newNode = new Node<>(tmp);
+            currentNode.child.set(index, newNode);
+
+            currentNode = newNode;
+            level -= Node.bitPerNode;
+        }
+
+        return currentNode;
     }
 
     public boolean conj(E newElement) {
@@ -111,16 +157,26 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         return conj(newElement);
     }
 
-    @Override
-    public E get(int index) {
+    private Node<E> getNode(Node<E> root, int index) {
         int level = bitPerLevel - Node.bitPerNode;
-        Node<E> node = getCurrentHead().root;
+        Node<E> node = root;
+
         while (level > 0) {
             int tempIndex = (index >> level) & mask;
             node = node.child.get(tempIndex);
             level -= Node.bitPerNode;
         }
-        return node.value.get(index & mask);
+
+        return node;
+    }
+
+    private E get(Head<E> head, int index) {
+        return getNode(head.root, index).value.get(index & mask);
+    }
+
+    @Override
+    public E get(int index) {
+        return get(getCurrentHead(), index);
     }
 
     private Head<E> getCurrentHead() {
