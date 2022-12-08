@@ -14,4 +14,10 @@ public abstract class AbstractPersistentCollection<E> implements UndoRedo, List<
         mask = (int) Math.pow(2, Node.bitPerNode) - 1;
         maxSize = (int) Math.pow(2, bitPerLevel);
     }
+
+    public static double log(int N, int newBase) {
+        return (Math.log(N) / Math.log(newBase));
+    }
+
+
 }
