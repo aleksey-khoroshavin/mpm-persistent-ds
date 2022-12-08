@@ -12,19 +12,23 @@ import java.util.NoSuchElementException;
 import java.util.Stack;
 
 public class PersistentArray<E> extends AbstractPersistentCollection<E> {
+
     private Stack<Head<E>> undo = new Stack<>();
     private Stack<Head<E>> redo = new Stack<>();
 
+
     public PersistentArray() {
-        super(6);
+        this(6, false);
+    }
+
+    public PersistentArray(int depth, boolean foo) {
+        super(depth);
         Head<E> head = new Head<>();
         undo.push(head);
     }
 
     public PersistentArray(int maxSize) {
-        super((int) Math.ceil(log(maxSize, (int) Math.pow(2, Node.bitPerNode))));
-        Head<E> head = new Head<>();
-        undo.push(head);
+        this((int) Math.ceil(log(maxSize, (int) Math.pow(2, Node.bitPerNode))), false);
     }
 
     @Override
@@ -42,8 +46,9 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
     }
 
     public E pop() throws NoSuchElementException {
-        if (getCurrentHead().size == 0)
+        if (getCurrentHead().size == 0) {
             throw new NoSuchElementException("Array is empty");
+        }
         Head<E> newHead = new Head<>(getCurrentHead(), -1);
         undo.push(newHead);
         redo.clear();
@@ -71,18 +76,84 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         return result;
     }
 
-    public boolean conj(E newElement) {
-        if (getCurrentHead().size == maxSize) {
-            return false;
+    private void printLeafs(Head<E> head) {
+        for (int i = 0; i < head.size; i++) {
+            System.out.print(i + ":" + String.format("%09d", getLeaf(head.root, i).hashCode()) + "; ");
         }
-        Head<E> newHead = new Head<>(getCurrentHead(), +1);
+        System.out.println();
+    }
+
+    public boolean assoc(int index, E value) {
+        if (index >= getCurrentHead().size) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        Head<E> oldHead = getCurrentHead();
+        printLeafs(oldHead);
+
+        Pair<Node<E>, Integer> copedNodeP = copyNode(oldHead, index);
+        int leafIndex = copedNodeP.getValue();
+        Head<E> newHead = getCurrentHead();
+        printLeafs(newHead);
+        Node<E> copedNode = copedNodeP.getKey();
+
+        copedNode.value.add(leafIndex, value);
+        newHead.size += 1;
+
+        if (copedNode.value.size() > Node.width) {
+            copedNode.value.remove(copedNode.value.size() - 1);
+            for (int i = index; i < oldHead.size; i++) {
+                conj(newHead, get(oldHead, i));
+            }
+        }
+        printLeafs(newHead);
+
+
+        return true;
+    }
+
+    private Pair<Node<E>, Integer> copyNode(Head<E> head, int insertIndex) {
+        if (getCurrentHead().size == maxSize) {
+            throw new IllegalStateException("array is full");
+        }
+
+        Head<E> newHead = new Head<>(head, 0);
         undo.push(newHead);
         redo.clear();
         Node<E> currentNode = newHead.root;
         int level = Node.bitPerNode * (depth - 1);
         while (level > 0) {
-            int index = ((newHead.size - 1) >> level) & mask;
+            int index = (insertIndex >> level) & mask;
             Node<E> tmp, newNode;
+            tmp = currentNode.child.get(index);
+            newNode = new Node<>(tmp);
+            currentNode.child.set(index, newNode);
+            currentNode = newNode;
+            level -= Node.bitPerNode;
+        }
+        return new Pair<>(currentNode, insertIndex & mask);
+    }
+
+    public boolean conj(E newElement) {
+        Head<E> newHead = new Head<>(getCurrentHead(), +1);
+        undo.push(newHead);
+        redo.clear();
+
+        return conj(newHead, newElement);
+    }
+
+    private boolean conj(Head<E> head, E newElement) {
+        if (head.size == maxSize) {
+            return false;
+        }
+
+        Node<E> currentNode = head.root;
+        int level = Node.bitPerNode * (depth - 1);
+
+        while (level > 0) {
+            int index = ((head.size - 1) >> level) & mask;
+            Node<E> tmp, newNode;
+
             if (currentNode.child == null) {
                 currentNode.child = new LinkedList<>();
                 newNode = new Node<>();
@@ -111,16 +182,24 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         return conj(newElement);
     }
 
-    @Override
-    public E get(int index) {
+    private Node<E> getLeaf(Node<E> root, int index) {
         int level = bitPerLevel - Node.bitPerNode;
-        Node<E> node = getCurrentHead().root;
+        Node<E> node = root;
         while (level > 0) {
             int tempIndex = (index >> level) & mask;
             node = node.child.get(tempIndex);
             level -= Node.bitPerNode;
         }
-        return node.value.get(index & mask);
+        return node;
+    }
+
+    private E get(Head<E> head, int index) {
+        return getLeaf(head.root, index).value.get(index & mask);
+    }
+
+    @Override
+    public E get(int index) {
+        return get(getCurrentHead(), index);
     }
 
     private Head<E> getCurrentHead() {
