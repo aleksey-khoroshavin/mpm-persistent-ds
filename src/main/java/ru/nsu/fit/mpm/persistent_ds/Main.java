@@ -8,18 +8,79 @@ public class Main {
     final static Random random = new Random();
 
     public static void main(String[] args) {
+
         testUndoRedo();
         testIterator();
         testPop();
         testAPI();
         testAssoc();
+        testUniqueLeafs();
+        testString();
+        testIntAsString();
+        testIntAsString2();
     }
 
-    private static PersistentArray<Integer> testBegin(String section, int size) {
+    private static void testIntAsString2() {
+        System.out.println("\n" + "testIntAsString2");
+        PersistentArray<Integer> persistentArray = new PersistentArray<>(20);
+        persistentArray.add(1);
+        persistentArray.add(2);
+        persistentArray.add(3);
+        printArray(persistentArray);
+        persistentArray.undo();
+        printArray(persistentArray);
+        persistentArray.add(4);
+        printArray(persistentArray);
+        persistentArray.add(0, 5);
+        printArray(persistentArray);
+    }
+
+    private static void testIntAsString() {
+        System.out.println("\n" + "testIntAsString");
+        PersistentArray<Integer> persistentArray = new PersistentArray<>(20);
+        persistentArray.add(1);
+        persistentArray.add(2);
+        persistentArray.add(3);
+        Iterator<Integer> i = persistentArray.iterator();
+        System.out.println(i.next());
+        System.out.println(i.next());
+        System.out.println(i.next());
+    }
+
+    private static void testString() {
+        System.out.println("\n" + "testString");
+        PersistentArray<String> persistentArray = new PersistentArray<>(20);
+        persistentArray.add("A");
+        persistentArray.add("B");
+        persistentArray.add("C");
+        Iterator<String> i = persistentArray.iterator();
+        System.out.println(i.next());
+        System.out.println(i.next());
+        System.out.println(i.next());
+    }
+
+    private static void testUniqueLeafs() {
+        PersistentArray<Integer> persistentArray = testBegin("testUniqueLists", 4, 3);
+        persistentArray.add(4);
+        printArray(persistentArray);
+        persistentArray.add(5);
+        printArray(persistentArray);
+    }
+
+    private static PersistentArray<Integer> testBegin(String section, int fillSize, int depth) {
+        System.out.println("\n" + section);
+        PersistentArray<Integer> persistentArray = new PersistentArray<>(depth, false);
+        System.out.println("Max count: " + persistentArray.maxSize);
+        fill(persistentArray, fillSize);
+        printArray(persistentArray);
+        return persistentArray;
+    }
+
+    private static PersistentArray<Integer> testBegin(String section, int fillSize) {
         System.out.println("\n" + section);
         PersistentArray<Integer> persistentArray = new PersistentArray<>(100);
         System.out.println("Max count: " + persistentArray.maxSize);
-        fill(persistentArray, size);
+        fill(persistentArray, fillSize);
         printArray(persistentArray);
         return persistentArray;
     }
@@ -37,6 +98,7 @@ public class Main {
         printArray(persistentArray);
         persistentArray.undo();
         printArray(persistentArray);
+
     }
 
     private static void testAPI() {
@@ -51,13 +113,13 @@ public class Main {
         System.out.println(Arrays.toString(
                 persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
         persistentArray.undo();
-        System.out.println(Arrays.toString(
-                persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+
+        System.out.println(Arrays.toString(persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+
         for (Integer integer : persistentArray) {
             System.out.print(integer + " ");
         }
         System.out.println();
-
     }
 
     private static void testPop() {
@@ -107,9 +169,17 @@ public class Main {
     }
 
     private static void printArray(PersistentArray<Integer> array) {
-        System.out.print("size: " + array.size() + "   ");
-        for (Integer integer : array) {
-            System.out.print(integer + " ");
+        System.out.print("size: " + array.size() + "; unique leafs: " + array.calcUniqueLeafs() + "; array: ");
+        for (Integer e : array) {
+            System.out.print(e + " ");
+        }
+        System.out.println();
+    }
+
+    private static void printArray2(PersistentArray<String> array) {
+        System.out.print("size: " + array.size() + "; unique leafs: " + array.calcUniqueLeafs() + "; array: ");
+        for (String e : array) {
+            System.out.print(e + " ");
         }
         System.out.println();
     }

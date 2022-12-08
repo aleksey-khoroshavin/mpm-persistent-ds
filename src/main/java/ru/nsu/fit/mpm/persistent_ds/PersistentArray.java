@@ -2,14 +2,7 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.NoSuchElementException;
-import java.util.Stack;
+import java.util.*;
 
 public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
@@ -29,6 +22,24 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
     public PersistentArray(int maxSize) {
         this((int) Math.ceil(log(maxSize, (int) Math.pow(2, Node.bitPerNode))), false);
+    }
+
+    public int calcUniqueLeafs() {
+        LinkedList<Node<E>> list = new LinkedList<>();
+        calcUniqueLeafs(list, undo);
+        calcUniqueLeafs(list, redo);
+
+        return list.size();
+    }
+
+    private void calcUniqueLeafs(LinkedList<Node<E>> list, Stack<Head<E>> undo1) {
+        for (Head<E> head : undo1) {
+            for (int i = 0; i < head.size; i++) {
+                Node<E> leaf = getLeaf(head, i);
+                if (!list.contains(leaf))
+                    list.add(leaf);
+            }
+        }
     }
 
     @Override
@@ -78,9 +89,14 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
     private void printLeafs(Head<E> head) {
         for (int i = 0; i < head.size; i++) {
-            System.out.print(i + ":" + String.format("%09d", getLeaf(head.root, i).hashCode()) + "; ");
+            System.out.print(i + ":" + String.format("%09d", getLeaf(head, i).hashCode()) + "; ");
         }
         System.out.println();
+    }
+
+    @Override
+    public void add(int index, E element) {
+        assoc(index, element);
     }
 
     public boolean assoc(int index, E value) {
@@ -89,12 +105,10 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         }
 
         Head<E> oldHead = getCurrentHead();
-        printLeafs(oldHead);
 
         Pair<Node<E>, Integer> copedNodeP = copyNode(oldHead, index);
         int leafIndex = copedNodeP.getValue();
         Head<E> newHead = getCurrentHead();
-        printLeafs(newHead);
         Node<E> copedNode = copedNodeP.getKey();
 
         copedNode.value.add(leafIndex, value);
@@ -106,9 +120,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
                 conj(newHead, get(oldHead, i));
             }
         }
-        printLeafs(newHead);
-
-
         return true;
     }
 
@@ -171,8 +182,10 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
             currentNode = newNode;
             level -= Node.bitPerNode;
         }
-        if (currentNode.value == null)
+
+        if (currentNode.value == null) {
             currentNode.value = new ArrayList<>();
+        }
         currentNode.value.add(newElement);
         return true;
     }
@@ -182,9 +195,10 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         return conj(newElement);
     }
 
-    private Node<E> getLeaf(Node<E> root, int index) {
+    private Node<E> getLeaf(Head<E> head, int index) {
         int level = bitPerLevel - Node.bitPerNode;
-        Node<E> node = root;
+        Node<E> node = head.root;
+
         while (level > 0) {
             int tempIndex = (index >> level) & mask;
             node = node.child.get(tempIndex);
@@ -194,7 +208,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
     }
 
     private E get(Head<E> head, int index) {
-        return getLeaf(head.root, index).value.get(index & mask);
+        return getLeaf(head, index).value.get(index & mask);
     }
 
     @Override
@@ -287,9 +301,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         return null;
     }
 
-    @Override
-    public void add(int index, E element) {
-    }
 
     @Override
     public E remove(int index) {
@@ -336,6 +347,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
         @Override
         public void remove() {
+
         }
     }
 }
