@@ -14,6 +14,13 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         this(6, false);
     }
 
+    public PersistentArray(PersistentArray<E> other) {
+        this(other.depth, false);
+
+        this.undo.addAll(other.undo);
+        this.redo.addAll(other.redo);
+    }
+
     public PersistentArray(int depth, boolean foo) {
         super(depth);
         Head<E> head = new Head<>();
@@ -117,11 +124,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         Node<E> copedNode = copedNodeP.getKey();
         copedNode.value.set(leafIndex, value);
         int count = Node.width - leafIndex - 1;
-        for (int i = 0; i < count; i++) {
-            newHead.size--;
-            copedNode.value.remove(copedNode.value.size() - 1);
-        }
-
         for (int i = index; i < oldHead.size; i++) {
             add(newHead, get(oldHead, i));
         }
@@ -147,6 +149,12 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
             level -= Node.bitPerNode;
         }
         return new Pair<>(currentNode, index & mask);
+    }
+
+    public PersistentArray<E> conj(E newElement) {
+        PersistentArray<E> result = new PersistentArray<>(this);
+        result.add(newElement);
+        return result;
     }
 
     private boolean add(Head<E> head, E newElement) {
@@ -303,6 +311,12 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         undo.push(head);
     }
 
+    public PersistentArray<E> assoc(int index, E element) {
+        PersistentArray<E> result = new PersistentArray<>(this);
+        result.set(index, element);
+        return result;
+    }
+
     @Override
     public E set(int index, E element) {
         Pair<Node<E>, Integer> pair = copyLeaf(getCurrentHead(), index);
@@ -351,7 +365,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
         @Override
         public E next() {
-            return (E) get(index++);
+            return (E) get(index++); // TODO WTF
         }
 
         @Override
