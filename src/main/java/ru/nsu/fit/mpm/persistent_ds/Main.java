@@ -13,26 +13,10 @@ public class Main {
         testIterator();
         testPop();
         testAPI();
-        testAssoc();
+        testAdd();
         testUniqueLeafs();
         testString();
         testIntAsString();
-        testIntAsString2();
-    }
-
-    private static void testIntAsString2() {
-        System.out.println("\n" + "testIntAsString2");
-        PersistentArray<Integer> persistentArray = new PersistentArray<>(20);
-        persistentArray.add(1);
-        persistentArray.add(2);
-        persistentArray.add(3);
-        printArray(persistentArray);
-        persistentArray.undo();
-        printArray(persistentArray);
-        persistentArray.add(4);
-        printArray(persistentArray);
-        persistentArray.add(0, 5);
-        printArray(persistentArray);
     }
 
     private static void testIntAsString() {
@@ -65,6 +49,8 @@ public class Main {
         printArray(persistentArray);
         persistentArray.add(5);
         printArray(persistentArray);
+
+
     }
 
     private static PersistentArray<Integer> testBegin(String section, int fillSize, int depth) {
@@ -92,13 +78,12 @@ public class Main {
         return persistentArray;
     }
 
-    private static void testAssoc() {
-        PersistentArray<Integer> persistentArray = testBegin("testAssoc", 4);
-        persistentArray.assoc(3, 999);
+    private static void testAdd() {
+        PersistentArray<Integer> persistentArray = testBegin("testAdd", 4);
+        persistentArray.add(3, 999);
         printArray(persistentArray);
         persistentArray.undo();
         printArray(persistentArray);
-
     }
 
     private static void testAPI() {
@@ -110,8 +95,7 @@ public class Main {
         persistentArray.add(3);
         persistentArray.add(8);
         printArray(persistentArray);
-        System.out.println(Arrays.toString(
-                persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+        System.out.println(Arrays.toString(persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
         persistentArray.undo();
 
         System.out.println(Arrays.toString(persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
@@ -169,18 +153,10 @@ public class Main {
     }
 
     private static void printArray(PersistentArray<Integer> array) {
-        System.out.print("size: " + array.size() + "; unique leafs: " + array.calcUniqueLeafs() + "; array: ");
-        for (Integer e : array) {
-            System.out.print(e + " ");
-        }
-        System.out.println();
+        System.out.println(array);
     }
 
     private static void printArray2(PersistentArray<String> array) {
-        System.out.print("size: " + array.size() + "; unique leafs: " + array.calcUniqueLeafs() + "; array: ");
-        for (String e : array) {
-            System.out.print(e + " ");
-        }
-        System.out.println();
+        System.out.println(array);
     }
 }
