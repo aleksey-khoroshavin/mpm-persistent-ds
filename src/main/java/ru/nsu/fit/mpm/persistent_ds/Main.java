@@ -2,10 +2,8 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Random;
 
 public class Main {
-    final static Random random = new Random();
 
     public static void main(String[] args) {
 
@@ -17,6 +15,28 @@ public class Main {
         testUniqueLeafs();
         testString();
         testIntAsString();
+        testAllInOne();
+    }
+
+    private static void testAllInOne() {
+        System.out.println("\n" + "testAllInOne");
+        PersistentArray<Integer> persistentArray = new PersistentArray<>(100);
+        System.out.println("Max count: " + persistentArray.maxSize);
+        persistentArray.add(1);
+        persistentArray.add(2);
+        persistentArray.add(3);
+        persistentArray.add(4);
+        printArray(persistentArray);
+        System.out.println("pop=" + persistentArray.pop());
+        printArray(persistentArray);
+        System.out.println("pop=" + persistentArray.pop());
+        printArray(persistentArray);
+        persistentArray.undo();
+        persistentArray.undo();
+        printArray(persistentArray);
+        persistentArray.redo();
+        persistentArray.redo();
+        printArray(persistentArray);
     }
 
     private static void testIntAsString() {
@@ -49,8 +69,6 @@ public class Main {
         printArray(persistentArray);
         persistentArray.add(5);
         printArray(persistentArray);
-
-
     }
 
     private static PersistentArray<Integer> testBegin(String section, int fillSize, int depth) {
@@ -97,9 +115,7 @@ public class Main {
         printArray(persistentArray);
         System.out.println(Arrays.toString(persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
         persistentArray.undo();
-
         System.out.println(Arrays.toString(persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
-
         for (Integer integer : persistentArray) {
             System.out.print(integer + " ");
         }
@@ -153,10 +169,6 @@ public class Main {
     }
 
     private static void printArray(PersistentArray<Integer> array) {
-        System.out.println(array);
-    }
-
-    private static void printArray2(PersistentArray<String> array) {
         System.out.println(array);
     }
 }
