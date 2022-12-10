@@ -51,7 +51,9 @@ class PersistentHashMapTest {
         }
         stringBuilder.deleteCharAt(stringBuilder.lastIndexOf(" "));
         stringBuilder.append("]");
-        System.out.println(stringBuilder.toString());
+        assertTrue(stringBuilder.toString().contains("A=1"));
+        assertTrue(stringBuilder.toString().contains("B=2"));
+        assertTrue(stringBuilder.toString().contains("C=3"));
     }
 
     @Test
@@ -89,5 +91,31 @@ class PersistentHashMapTest {
         stringBuilder.deleteCharAt(stringBuilder.lastIndexOf(" "));
         stringBuilder.append("]");
         assertEquals("[C:3 B:2 A:1]", stringBuilder.toString());
+    }
+
+    @Test
+    void testPersistentHashMapClear() {
+        addABC();
+        assertEquals(3, phm.size());
+        phm.clear();
+        assertEquals(0, phm.size());
+    }
+
+    @Test
+    void testPersistentHashMapRemove() {
+        addABC();
+
+        assertEquals(3, phm.size());
+        assertTrue(phm.containsKey("A"));
+        assertTrue(phm.containsKey("B"));
+        assertTrue(phm.containsKey("C"));
+
+        phm.remove("A");
+        assertFalse(phm.containsKey("A"));
+        assertEquals(2, phm.size());
+
+        phm.remove("C");
+        assertFalse(phm.containsKey("C"));
+        assertEquals(1, phm.size());
     }
 }

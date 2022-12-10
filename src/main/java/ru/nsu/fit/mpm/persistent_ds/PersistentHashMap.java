@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-public class PersistentHashMap<K, V> extends AbstractMap<K, V> {
+public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRedo {
 
     private PersistentArray<LinkedList<Pair<K, V>>> table;
 
@@ -37,6 +37,15 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 
     @Override
     public V remove(Object key) {
+        for (LinkedList<Pair<K, V>> pairs : table) {
+            for (int j = 0; j < pairs.size(); j++) {
+                if (pairs.get(j).key.equals(key)) {
+                    V value = pairs.get(j).getValue();
+                    pairs.remove(j);
+                    return value;
+                }
+            }
+        }
         return null;
     }
 
@@ -49,6 +58,9 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 
     @Override
     public void clear() {
+        for (LinkedList<Pair<K, V>> pairs : table) {
+            pairs.clear();
+        }
     }
 
     @Override
@@ -95,6 +107,9 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 
     @Override
     public String toString() {
+        if (isEmpty()) {
+            return "[]";
+        }
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("[");
         for (Map.Entry<K, V> entry : this.entrySet()) {
@@ -108,6 +123,14 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> {
 
     private int calculateIndex(int hashcode) {
         return hashcode & (table.maxSize - 1);
+    }
+
+    @Override
+    public void undo() {
+    }
+
+    @Override
+    public void redo() {
     }
 
     static class Pair<K, V> implements Map.Entry<K, V> {
