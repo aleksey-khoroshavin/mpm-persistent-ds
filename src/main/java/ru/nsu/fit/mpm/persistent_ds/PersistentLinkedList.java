@@ -1,31 +1,72 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
+import javafx.util.Pair;
+
+import java.util.*;
 
 public class PersistentLinkedList<E> extends AbstractPersistentCollection<PersistentLinkedListElement<E>> implements List<E> {
 
+    protected final Stack<HeadList<PersistentLinkedListElement<E>>> redo = new Stack<>();
+    protected final Stack<HeadList<PersistentLinkedListElement<E>>> undo = new Stack<>();
 
     public PersistentLinkedList() {
-        super();
+        this(6, 5);
     }
 
     public PersistentLinkedList(int maxSize) {
-        super(maxSize);
+        this((int) Math.ceil(log(maxSize, (int) Math.pow(2, 5))), 5);
     }
 
-    public PersistentLinkedList(int depth, int bit_na_pu) {
-        super(depth, bit_na_pu);
+    public PersistentLinkedList(int depth, int bitPerNode) {
+        super(depth, bitPerNode);
+        HeadList<PersistentLinkedListElement<E>> head = new HeadList<>();
+        undo.push(head);
+        redo.clear();
     }
 
     public PersistentLinkedList(PersistentLinkedList<E> other) {
         super(other.depth, other.bitPerNode);
         this.undo.addAll(other.undo);
         this.redo.addAll(other.redo);
+    }
+
+    public void undo() {
+        if (!undo.empty()) {
+            redo.push(undo.pop());
+        }
+    }
+
+    public void redo() {
+        if (!redo.empty()) {
+            undo.push(redo.pop());
+        }
+    }
+
+    public int getUniqueLeafsSize() {
+        LinkedList<Node<PersistentLinkedListElement<E>>> list = new LinkedList<>();
+        getUniqueLeafsSize(list, undo);
+        getUniqueLeafsSize(list, redo);
+
+        return list.size();
+    }
+
+    private void getUniqueLeafsSize(LinkedList<Node<PersistentLinkedListElement<E>>> list, Stack<HeadList<PersistentLinkedListElement<E>>> undo1) {
+        for (HeadList<PersistentLinkedListElement<E>> head : undo1) {
+            for (int i = 0; i < head.size; i++) {
+                Node<PersistentLinkedListElement<E>> leaf = getLeaf(head, i).getKey();
+                if (!list.contains(leaf))
+                    list.add(leaf);
+            }
+        }
+
+    }
+
+    protected HeadList<PersistentLinkedListElement<E>> getCurrentHead() {
+        return this.undo.peek();
+    }
+
+    public int size(HeadList<PersistentLinkedListElement<E>> head) {
+        return head.size;
     }
 
     @Override
@@ -48,9 +89,17 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         return null;
     }
 
+    private Object[] toArray(HeadList<PersistentLinkedListElement<E>> head) {
+        Object[] objects = new Object[head.size];
+        for (int i = 0; i < objects.length; i++) {
+            objects[i] = this.get(head, i);
+        }
+        return objects;
+    }
+
     @Override
     public Object[] toArray() {
-        return new Object[0];
+        return toArray(getCurrentHead());
     }
 
     @Override
@@ -58,21 +107,53 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         return null;
     }
 
-    @Override
-    public boolean add(E e) {
-        Head<PersistentLinkedListElement<E>> newHead = new Head<>(getCurrentHead(), 0);
-        undo.push(newHead);
-        redo.clear();
-
-        return add(newHead, e);
+    public boolean isFull() {
+        return isFull(getCurrentHead());
     }
 
-    private boolean add(Head<PersistentLinkedListElement<E>> head, E newElement) {
-        if (head.size + 1 >= maxSize) {
+    public boolean isFull(HeadList<PersistentLinkedListElement<E>> head) {
+        return head.sizeTree >= maxSize;
+    }
+
+
+    @Override
+    public boolean add(E newValue) {
+        if (isFull()) {
             return false;
         }
 
+        PersistentLinkedListElement<E> element;
+
+        HeadList<PersistentLinkedListElement<E>> prevHead = getCurrentHead();
+        HeadList<PersistentLinkedListElement<E>> head;
+
+        if (getCurrentHead().size == 0) {
+            head = new HeadList<>(prevHead);
+            undo.push(head);
+            redo.clear();
+            element = new PersistentLinkedListElement<>(newValue, -1, -1);
+            head.first = head.sizeTree;
+        } else {
+            element = new PersistentLinkedListElement<>(newValue, prevHead.last, -1);
+            Pair<Node<PersistentLinkedListElement<E>>, Integer> pair = copyLeaf(prevHead, prevHead.last);
+            head = getCurrentHead();
+            PersistentLinkedListElement<E> prev = new PersistentLinkedListElement<>(pair.getKey().value.get(pair.getValue()));
+            prev.next = head.sizeTree;
+            pair.getKey().value.set(pair.getValue(), prev);
+        }
+        head.last = head.sizeTree;
+
+        add2(head).value.add(element);
+        return true;
+    }
+
+    protected Node<PersistentLinkedListElement<E>> add2(HeadList<PersistentLinkedListElement<E>> head) {
+        if (isFull(head)) {
+            throw new IndexOutOfBoundsException("collection is full");
+        }
+
         head.size += 1;
+        head.sizeTree += 1;
 
         Node<PersistentLinkedListElement<E>> currentNode = head.root;
         int level = bitPerNode * (depth - 1);
@@ -104,7 +185,7 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
             currentNode.value = new ArrayList<>();
         }
 
-        return true;
+        return currentNode;
     }
 
     @Override
@@ -142,9 +223,68 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
 
     }
 
+    private E get(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        if (!((index < head.size) && (index >= 0))) {
+            throw new IndexOutOfBoundsException();
+        }
+        return getLeaf(head, index).getKey().value.get(index & mask).value;
+    }
+
+    protected Pair<Node<PersistentLinkedListElement<E>>, Integer> getLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        if (index >= head.size) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        int level = bitPerLevel - bitPerNode;
+        Node<PersistentLinkedListElement<E>> node = head.root;
+
+        while (level > 0) {
+            int tempIndex = (index >> level) & mask;
+            node = node.child.get(tempIndex);
+            level -= bitPerNode;
+        }
+
+        return new Pair<>(node, index & mask);
+    }
+
+    private Pair<Node<PersistentLinkedListElement<E>>, Integer> copyLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        if (isFull()) {
+            throw new IllegalStateException("array is full");
+        }
+
+        HeadList<PersistentLinkedListElement<E>> newHead = new HeadList<>(head, 0);
+        undo.push(newHead);
+        redo.clear();
+        Node<PersistentLinkedListElement<E>> currentNode = newHead.root;
+        int level = bitPerNode * (depth - 1);
+
+        while (level > 0) {
+            int widthIndex = (index >> level) & mask;
+            Node<PersistentLinkedListElement<E>> tmp, newNode;
+
+            tmp = currentNode.child.get(widthIndex);
+            newNode = new Node<>(tmp);
+            currentNode.child.set(widthIndex, newNode);
+
+            currentNode = newNode;
+            level -= bitPerNode;
+        }
+
+        return new Pair<>(currentNode, index & mask);
+    }
+
+    public int getVersionCount() {
+        return undo.size() + redo.size();
+    }
+
+    public String drawGraph() {
+        return "unique:" + getUniqueLeafsSize() + "; ver:" + getVersionCount() + "\n"
+                + getCurrentHead() + "\n" + getCurrentHead().root.drawGraph();
+    }
+
     @Override
     public E get(int index) {
-        return null;
+        return get(getCurrentHead(), index);
     }
 
     @Override

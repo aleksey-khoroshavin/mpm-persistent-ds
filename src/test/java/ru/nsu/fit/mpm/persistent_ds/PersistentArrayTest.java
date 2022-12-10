@@ -5,10 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class PersistentArrayTest {
     PersistentArray<String> persistentArray;
@@ -83,20 +80,29 @@ public class PersistentArrayTest {
     @Test
     public void testPersistentArrayUndoRedo() {
         addABC();
+        assertEquals(4, persistentArray.getVersionCount());
         persistentArray.undo();
+        assertEquals(4, persistentArray.getVersionCount());
         persistentArray.undo();
+        assertEquals(4, persistentArray.getVersionCount());
         assertEquals("A", valuesToString(persistentArray));
 
         persistentArray.redo();
+        assertEquals(4, persistentArray.getVersionCount());
         assertEquals("AB", valuesToString(persistentArray));
 
         persistentArray.undo();
+        assertEquals(4, persistentArray.getVersionCount());
         persistentArray.undo();
+        assertEquals(4, persistentArray.getVersionCount());
         assertEquals("", valuesToString(persistentArray));
 
         persistentArray.redo();
+        assertEquals(4, persistentArray.getVersionCount());
         persistentArray.redo();
+        assertEquals(4, persistentArray.getVersionCount());
         persistentArray.redo();
+        assertEquals(4, persistentArray.getVersionCount());
         assertEquals("ABC", valuesToString(persistentArray));
     }
 
@@ -118,7 +124,6 @@ public class PersistentArrayTest {
             stringBuilder.append(s);
         }
         assertEquals("ABC", stringBuilder.toString());
-
 
         stringBuilder = new StringBuilder();
         persistentArray.forEach(stringBuilder::append);
@@ -164,48 +169,47 @@ public class PersistentArrayTest {
 
     @Test
     public void testPersistentArrayStream() {
-        PersistentArray<Integer> array = new PersistentArray<>();
-        array.add(4);
-        array.add(5);
-        array.add(6);
-        array.add(7);
+        PersistentArray<Integer> persistentArray = new PersistentArray<>();
+        persistentArray.add(4);
+        persistentArray.add(5);
+        persistentArray.add(6);
+        persistentArray.add(7);
 
         assertEquals("[12, 14]", Arrays.toString(
-                array.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+                persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
 
-        array.undo();
+        persistentArray.undo();
 
         assertEquals("[12]", Arrays.toString(
-                array.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
-
+                persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
     }
 
     @Test
     public void testPersistentArrayConstructor() {
-        PersistentArray<String> version0 = new PersistentArray<>();
-        assertEquals(1073741824, version0.maxSize);
-        assertEquals(6, version0.depth);
-        assertEquals(32, version0.width);
+        PersistentArray<String> persistentArray0 = new PersistentArray<>();
+        assertEquals(1073741824, persistentArray0.maxSize);
+        assertEquals(6, persistentArray0.depth);
+        assertEquals(32, persistentArray0.width);
 
-        PersistentArray<String> version1 = new PersistentArray<>(27);
-        assertEquals(32, version1.maxSize);
-        assertEquals(1, version1.depth);
-        assertEquals(32, version1.width);
+        PersistentArray<String> persistentArray1 = new PersistentArray<>(27);
+        assertEquals(32, persistentArray1.maxSize);
+        assertEquals(1, persistentArray1.depth);
+        assertEquals(32, persistentArray1.width);
 
-        PersistentArray<String> version2 = new PersistentArray<>(32);
-        assertEquals(32, version2.maxSize);
-        assertEquals(1, version2.depth);
-        assertEquals(32, version2.width);
+        PersistentArray<String> persistentArray2 = new PersistentArray<>(32);
+        assertEquals(32, persistentArray2.maxSize);
+        assertEquals(1, persistentArray2.depth);
+        assertEquals(32, persistentArray2.width);
 
-        PersistentArray<String> version3 = new PersistentArray<>(33);
-        assertEquals(1024, version3.maxSize);
-        assertEquals(2, version3.depth);
-        assertEquals(32, version3.width);
+        PersistentArray<String> persistentArray3 = new PersistentArray<>(33);
+        assertEquals(1024, persistentArray3.maxSize);
+        assertEquals(2, persistentArray3.depth);
+        assertEquals(32, persistentArray3.width);
 
-        PersistentArray<String> version4 = new PersistentArray<>(3, 1);
-        assertEquals(8, version4.maxSize);
-        assertEquals(3, version4.depth);
-        assertEquals(2, version4.width);
+        PersistentArray<String> persistentArray4 = new PersistentArray<>(3, 1);
+        assertEquals(8, persistentArray4.maxSize);
+        assertEquals(3, persistentArray4.depth);
+        assertEquals(2, persistentArray4.width);
     }
 
     @Test
