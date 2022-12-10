@@ -1,6 +1,7 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class Node<E> {
@@ -26,16 +27,25 @@ public class Node<E> {
     public Node(Node<E> other, int maxIndex) {
         if (other.child != null) {
             child = new ArrayList<>();
-            for (int i = 0; i <= maxIndex; i++)
+            for (int i = 0; i <= maxIndex; i++) {
                 child.add(other.child.get(i));
+            }
 
         }
 
         if (other.value != null) {
             value = new ArrayList<>();
-            for (int i = 0; i <= maxIndex; i++)
+            for (int i = 0; i <= maxIndex; i++) {
                 value.add(other.value.get(i));
+            }
         }
+    }
+
+    @Override
+    public String toString() {
+        String childs = child == null ? "[null]" : Arrays.toString(child.toArray());
+        String values = value == null ? "[null]" : Arrays.toString(value.toArray());
+        return String.format("%09x %s %s", hashCode(), childs, values);
     }
 
     public boolean isEmpty() {
@@ -54,11 +64,6 @@ public class Node<E> {
         }
 
         return result;
-    }
-
-    @Override
-    public String toString() {
-        return "N" + hashCode() + "[\n" + "  child=" + child + "\n" + "  value=" + value + "\n]";
     }
 
     private String drawTab(int count) {
