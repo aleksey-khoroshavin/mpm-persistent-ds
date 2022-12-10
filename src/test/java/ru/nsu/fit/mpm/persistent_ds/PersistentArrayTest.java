@@ -8,10 +8,18 @@ import java.util.Iterator;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class PersistentArrayTest {
+    PersistentArray<String> persistentArray;
 
-    PersistentArray<String> persistentArray = new PersistentArray<>(32);
 
     private void addABC() {
+        persistentArray = new PersistentArray<>(32);
+        persistentArray.add("A");
+        persistentArray.add("B");
+        persistentArray.add("C");
+    }
+
+    private void addABC(int depth, int bitPerNode) {
+        persistentArray = new PersistentArray<>(depth, bitPerNode);
         persistentArray.add("A");
         persistentArray.add("B");
         persistentArray.add("C");
@@ -43,13 +51,17 @@ public class PersistentArrayTest {
 
     @Test
     public void testPersistentArraySize() {
+        persistentArray = new PersistentArray<>(32);
         assertEquals(persistentArray.size(), 0);
-        addABC();
+        persistentArray.add("A");
+        persistentArray.add("B");
+        persistentArray.add("C");
         assertEquals(persistentArray.size(), 3);
     }
 
     @Test
     public void testPersistentArrayIsEmpty() {
+        persistentArray = new PersistentArray<>(32);
         assertTrue(persistentArray.isEmpty());
         persistentArray.add("A");
         assertFalse(persistentArray.isEmpty());
@@ -124,6 +136,7 @@ public class PersistentArrayTest {
 
     @Test
     public void testPersistentArrayCascade() {
+        persistentArray = new PersistentArray<>(32);
         persistentArray.add("A");
 
         PersistentArray<String> v2 = persistentArray.conj("B");
@@ -193,13 +206,56 @@ public class PersistentArrayTest {
         assertEquals("37691", valuesToString(persistentArray));
         persistentArray.add(3, "8");
         assertEquals("376891", valuesToString(persistentArray));
-        assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.add(9999, "8"));
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.add(-1, "8"));
+        assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.add(6, "8"));
+        assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.add(9999, "8"));
     }
 
     @Test
     public void testPersistentArrayToString() {
         addABC();
         assertEquals("size: 3; unique leafs: 3; array: [A, B, C]", persistentArray.toString());
+    }
+
+    @Test
+    public void testPersistentArrayRemove() {
+        addABC(3, 1);
+
+        assertEquals(3, persistentArray.calcUniqueLeafs());
+        assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(-1));
+        assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(3));
+        assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(999));
+
+        assertEquals("B", persistentArray.remove(1));
+        assertEquals("AC", valuesToString(persistentArray));
+        assertEquals(4, persistentArray.calcUniqueLeafs());
+
+        assertEquals("C", persistentArray.remove(1));
+        assertEquals("A", valuesToString(persistentArray));
+        assertEquals(5, persistentArray.calcUniqueLeafs());
+
+        assertEquals("A", persistentArray.remove(0));
+        assertEquals("", valuesToString(persistentArray));
+        assertEquals(5, persistentArray.calcUniqueLeafs());
+        assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(0));
+    }
+
+    @Test
+    public void testPersistentArrayClear() {
+        addABC();
+        persistentArray.clear();
+        assertEquals("", valuesToString(persistentArray));
+        persistentArray.undo();
+        assertEquals("ABC", valuesToString(persistentArray));
+    }
+
+    @Test
+    public void testPersistentArrayUniqueLeafs() {
+        persistentArray = new PersistentArray<>(3, 1);
+        assertEquals(0, persistentArray.calcUniqueLeafs());
+        persistentArray.add("A");
+        assertEquals(1, persistentArray.calcUniqueLeafs());
+        persistentArray.add("B");
+        assertEquals(2, persistentArray.calcUniqueLeafs());
     }
 }
