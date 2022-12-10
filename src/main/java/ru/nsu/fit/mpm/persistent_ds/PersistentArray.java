@@ -2,7 +2,15 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
+import java.util.Stack;
 
 public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
@@ -96,13 +104,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
                 break;
         }
         return result;
-    }
-
-    private void printLeafs(Head<E> head) {
-        for (int i = 0; i < head.size; i++) {
-            System.out.print(i + ":" + String.format("%09d", getLeaf(head, i).hashCode()) + "; ");
-        }
-        System.out.println();
     }
 
     @Override
@@ -365,7 +366,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
         @Override
         public E next() {
-            return (E) get(index++); // TODO WTF
+            return (E) get(index++);
         }
 
         @Override
