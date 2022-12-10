@@ -2,7 +2,27 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 public class Main {
     public static void main(String[] args) {
-        arrayPresentation();
+        listPresentation();
+    }
+
+    private static void listPresentation() {
+        System.out.println("\n" + "list");
+        PersistentLinkedList<Integer> persistentLinkedList = new PersistentLinkedList<>(3, 1);
+
+        persistentLinkedList.add(3);
+        System.out.println(persistentLinkedList.drawGraph());
+
+        persistentLinkedList.add(4);
+        System.out.println(persistentLinkedList.drawGraph());
+
+        persistentLinkedList.add(6);
+        System.out.println(persistentLinkedList.drawGraph());
+
+        persistentLinkedList.add(9);
+        System.out.println(persistentLinkedList.drawGraph());
+
+        persistentLinkedList.undo();
+        System.out.println(persistentLinkedList.drawGraph());
     }
 
     private static void arrayPresentation() {

@@ -2,34 +2,46 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.NoSuchElementException;
-import java.util.Stack;
+import java.util.*;
 
 public class PersistentArray<E> extends AbstractPersistentCollection<E> implements List<E> {
 
     public PersistentArray() {
-        super();
+        this(6, 5);
     }
 
     public PersistentArray(int maxSize) {
-        super(maxSize);
+        this((int) Math.ceil(log(maxSize, (int) Math.pow(2, 5))), 5);
     }
 
     public PersistentArray(int depth, int bitPerNode) {
+
         super(depth, bitPerNode);
+
+        HeadArray<E> head = new HeadArray<>();
+        undo.push(head);
+        redo.clear();
     }
 
     public PersistentArray(PersistentArray<E> other) {
         super(other.depth, other.bitPerNode);
         this.undo.addAll(other.undo);
         this.redo.addAll(other.redo);
+    }
+
+    protected final Stack<HeadArray<E>> redo = new Stack<>();
+    protected final Stack<HeadArray<E>> undo = new Stack<>();
+
+    public void undo() {
+        if (!undo.empty()) {
+            redo.push(undo.pop());
+        }
+    }
+
+    public void redo() {
+        if (!redo.empty()) {
+            undo.push(redo.pop());
+        }
     }
 
     public int getVersionCount() {
@@ -44,8 +56,8 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return list.size();
     }
 
-    private void calcUniqueLeafs(LinkedList<Node<E>> list, Stack<Head<E>> undo1) {
-        for (Head<E> head : undo1) {
+    private void calcUniqueLeafs(LinkedList<Node<E>> list, Stack<HeadArray<E>> undo1) {
+        for (HeadArray<E> head : undo1) {
             for (int i = 0; i < head.size; i++) {
                 Node<E> leaf = getLeaf(head, i);
                 if (!list.contains(leaf))
@@ -54,12 +66,27 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         }
     }
 
+    protected Node<E> getLeaf(HeadArray<E> head, int index) {
+        if (index >= head.size)
+            throw new IndexOutOfBoundsException();
+
+        int level = bitPerLevel - bitPerNode;
+        Node<E> node = head.root;
+
+        while (level > 0) {
+            int tempIndex = (index >> level) & mask;
+            node = node.child.get(tempIndex);
+            level -= bitPerNode;
+        }
+
+        return node;
+    }
+
     public E pop() throws NoSuchElementException {
         if (getCurrentHead().size == 0) {
             throw new NoSuchElementException("Array is empty");
         }
-
-        Head<E> newHead = new Head<>(getCurrentHead(), -1);
+        HeadArray<E> newHead = new HeadArray<>(getCurrentHead(), -1);
         undo.push(newHead);
         redo.clear();
         LinkedList<Pair<Node<E>, Integer>> path = new LinkedList<>();
@@ -86,14 +113,33 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return result;
     }
 
-
-    private String toString(Head<E> head) {
+    private String toString(HeadArray<E> head) {
         return "size: " + size(head) + "; unique leafs: "
                 + calcUniqueLeafs() + "; array: " + Arrays.toString(toArray(head));
     }
 
-    public String drawGraph() {
-        return getCurrentHead().root.drawGraph();
+    public int size(HeadArray<E> head) {
+        return head.size;
+    }
+
+    protected HeadArray<E> getCurrentHead() {
+        return this.undo.peek();
+    }
+
+    public boolean isIndexValid(int index) {
+        return isIndexValid(getCurrentHead(), index);
+    }
+
+    public boolean isIndexValid(HeadArray<E> head, int index) {
+        return (index >= 0) && (index < head.size);
+    }
+
+    public boolean isFull() {
+        return isFull(getCurrentHead());
+    }
+
+    public boolean isFull(HeadArray<E> head) {
+        return head.size >= maxSize;
     }
 
     @Override
@@ -114,11 +160,11 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
             throw new IndexOutOfBoundsException();
         }
 
-        Head<E> oldHead = getCurrentHead();
-        Head<E> newHead;
+        HeadArray<E> oldHead = getCurrentHead();
+        HeadArray<E> newHead;
 
         if (index == 0) {
-            newHead = new Head<>();
+            newHead = new HeadArray<>();
             undo.push(newHead);
             redo.clear();
         } else {
@@ -136,32 +182,13 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return result;
     }
 
-    @Override
-    public void add(int index, E value) {
-        if (index >= getCurrentHead().size || index < 0) {
-            throw new IndexOutOfBoundsException();
-        }
-
-        Head<E> oldHead = getCurrentHead();
-
-        Pair<Node<E>, Integer> copedNodeP = copyLeafInsert(oldHead, index);
-        Head<E> newHead = getCurrentHead();
-        int leafIndex = copedNodeP.getValue();
-        Node<E> copedNode = copedNodeP.getKey();
-        copedNode.value.set(leafIndex, value);
-
-        for (int i = index; i < oldHead.size; i++) {
-            add(newHead, get(oldHead, i));
-        }
-    }
-
-    private Pair<Node<E>, Integer> copyLeafInsert(Head<E> oldHead, int index) {
-        if (getCurrentHead().size == maxSize) {
+    private Pair<Node<E>, Integer> copyLeafInsert(HeadArray<E> oldHead, int index) {
+        if (isFull(oldHead)) {
             throw new IllegalStateException("array is full");
         }
 
         int level = bitPerNode * (depth - 1);
-        Head<E> newHead = new Head<>(oldHead, index + 1, (index >> level) & mask);
+        HeadArray<E> newHead = new HeadArray<>(oldHead, index + 1, (index >> level) & mask);
 
         undo.push(newHead);
         redo.clear();
@@ -181,12 +208,12 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return new Pair<>(currentNode, index & mask);
     }
 
-    private Pair<Node<E>, Integer> copyLeaf(Head<E> head, int index) {
-        if (getCurrentHead().size == maxSize) {
+    private Pair<Node<E>, Integer> copyLeaf(HeadArray<E> head, int index) {
+        if (isFull()) {
             throw new IllegalStateException("array is full");
         }
 
-        Head<E> newHead = new Head<>(head, 0);
+        HeadArray<E> newHead = new HeadArray<>(head, 0);
         undo.push(newHead);
         redo.clear();
         Node<E> currentNode = newHead.root;
@@ -210,20 +237,60 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
     }
 
     @Override
+    public void add(int index, E value) {
+        if (!isIndexValid(index)) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        HeadArray<E> oldHead = getCurrentHead();
+
+        Pair<Node<E>, Integer> copedNodeP = copyLeafInsert(oldHead, index);
+        HeadArray<E> newHead = getCurrentHead();
+
+        int leafIndex = copedNodeP.getValue();
+        Node<E> copedNode = copedNodeP.getKey();
+
+        copedNode.value.set(leafIndex, value);
+
+        for (int i = index; i < oldHead.size; i++) {
+            add(newHead, get(oldHead, i));
+        }
+
+    }
+
+    @Override
     public boolean add(E newElement) {
-        if (getCurrentHead().size == maxSize) {
+        if (isFull()) {
             return false;
         }
-        Head<E> newHead = new Head<>(getCurrentHead(), 0);
+        HeadArray<E> newHead = new HeadArray<>(getCurrentHead(), 0);
         undo.push(newHead);
         redo.clear();
 
         return add(newHead, newElement);
     }
 
-    private boolean add(Head<E> head, E newElement) {
-        if (head.size == maxSize) {
-            return false;
+    private boolean add(HeadArray<E> head, E newElement) {
+        add2(head).value.add(newElement);
+
+        return true;
+    }
+
+    private E get(HeadArray<E> head, int index) {
+        if (!((index < head.size) && (index >= 0))) {
+            throw new IndexOutOfBoundsException();
+        }
+        return getLeaf(head, index).value.get(index & mask);
+    }
+
+    @Override
+    public E get(int index) {
+        return get(getCurrentHead(), index);
+    }
+
+    protected Node<E> add2(HeadArray<E> head) {
+        if (isFull(head)) {
+            throw new IndexOutOfBoundsException("collection is full");
         }
         head.size += 1;
         Node<E> currentNode = head.root;
@@ -253,21 +320,11 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         if (currentNode.value == null) {
             currentNode.value = new ArrayList<>();
         }
-
-        currentNode.value.add(newElement);
-        return true;
+        return currentNode;
     }
 
-    private E get(Head<E> head, int index) {
-        if (!((index < head.size) && (index >= 0))) {
-            throw new IndexOutOfBoundsException();
-        }
-        return getLeaf(head, index).value.get(index & mask);
-    }
-
-    @Override
-    public E get(int index) {
-        return get(getCurrentHead(), index);
+    public String drawGraph() {
+        return getCurrentHead() + "\n" + getCurrentHead().root.drawGraph();
     }
 
     @Override
@@ -290,7 +347,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return new PersistentArrayIterator<>();
     }
 
-    private Object[] toArray(Head<E> head) {
+    private Object[] toArray(HeadArray<E> head) {
         Object[] objects = new Object[head.size];
         for (int i = 0; i < objects.length; i++) {
             objects[i] = this.get(head, i);
@@ -339,7 +396,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
 
     @Override
     public void clear() {
-        Head<E> head = new Head<>();
+        HeadArray<E> head = new HeadArray<>();
         undo.push(head);
         redo.clear();
     }
@@ -398,7 +455,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
 
         @Override
         public void remove() {
-
         }
     }
 }
