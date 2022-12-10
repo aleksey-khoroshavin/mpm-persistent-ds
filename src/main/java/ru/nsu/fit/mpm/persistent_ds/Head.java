@@ -13,4 +13,9 @@ public class Head<E> {
         this.root = new Node<>(prevHead.root);
         this.size = prevHead.size + sizeDelta;
     }
+
+    public Head(Head<E> other, Integer newSize, Integer maxIndex) {
+        this.root = new Node<>(other.root, maxIndex);
+        this.size = newSize;
+    }
 }
