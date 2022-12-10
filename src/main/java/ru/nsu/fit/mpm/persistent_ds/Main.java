@@ -18,24 +18,24 @@ public class Main {
         persistentArray.undo();
         System.out.println(persistentArray);
 
-        PersistentArray<String> v1 = new PersistentArray<>(3, 1);
-        System.out.println("maxSize = " + v1.maxSize);
-        v1.add("Str1");
-        PersistentArray<String> v2 = v1.conj("Str2");
+        PersistentArray<String> version1 = new PersistentArray<>(3, 1);
+        System.out.println("maxSize = " + version1.maxSize);
+        version1.add("Str1");
+        PersistentArray<String> version2 = version1.conj("Str2");
 
-        System.out.println(v1);
-        System.out.println(v2);
+        System.out.println(version1);
+        System.out.println(version2);
 
-        PersistentArray<String> v3 = v2.assoc(0, "Str3");
+        PersistentArray<String> version3 = version2.assoc(0, "Str3");
 
-        System.out.println(v1);
-        System.out.println(v2);
-        System.out.println(v3);
+        System.out.println(version1);
+        System.out.println(version2);
+        System.out.println(version3);
 
-        v3.add("3");
-        v3.add("4");
-        System.out.println(v3.drawGraph());
-        v3.remove(2);
-        System.out.println(v3.drawGraph());
+        version3.add("3");
+        version3.add("4");
+        System.out.println(version3.drawGraph());
+        version3.remove(2);
+        System.out.println(version3.drawGraph());
     }
 }

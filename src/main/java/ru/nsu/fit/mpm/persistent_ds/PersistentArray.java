@@ -2,31 +2,32 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
+import java.util.Stack;
 
-public class PersistentArray<E> extends AbstractPersistentCollection<E> {
-
-    private Stack<Head<E>> undo = new Stack<>();
-    private Stack<Head<E>> redo = new Stack<>();
+public class PersistentArray<E> extends AbstractPersistentCollection<E> implements List<E> {
 
     public PersistentArray() {
-        this(6, 5);
+        super();
     }
 
     public PersistentArray(int maxSize) {
-        this((int) Math.ceil(log(maxSize, (int) Math.pow(2, 5))), 5);
+        super(maxSize);
     }
 
-    public PersistentArray(int depth, int bit_na_pu) {
-        super(depth, bit_na_pu);
-        Head<E> head = new Head<>();
-        undo.push(head);
-        redo.clear();
+    public PersistentArray(int depth, int bitPerNode) {
+        super(depth, bitPerNode);
     }
 
     public PersistentArray(PersistentArray<E> other) {
-        this(other.depth, other.bitPerNode);
-
+        super(other.depth, other.bitPerNode);
         this.undo.addAll(other.undo);
         this.redo.addAll(other.redo);
     }
@@ -50,20 +51,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
                 if (!list.contains(leaf))
                     list.add(leaf);
             }
-        }
-    }
-
-    @Override
-    public void undo() {
-        if (!undo.empty()) {
-            redo.push(undo.pop());
-        }
-    }
-
-    @Override
-    public void redo() {
-        if (!redo.empty()) {
-            undo.push(redo.pop());
         }
     }
 
@@ -206,7 +193,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         int level = bitPerNode * (depth - 1);
         while (level > 0) {
             int widthIndex = (index >> level) & mask;
-            int widthIndexNext = (index >> (level - bitPerNode)) & mask;
             Node<E> tmp, newNode;
             tmp = currentNode.child.get(widthIndex);
             newNode = new Node<>(tmp);
@@ -225,6 +211,9 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public boolean add(E newElement) {
+        if (getCurrentHead().size == maxSize) {
+            return false;
+        }
         Head<E> newHead = new Head<>(getCurrentHead(), 0);
         undo.push(newHead);
         redo.clear();
@@ -239,7 +228,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         head.size += 1;
         Node<E> currentNode = head.root;
         int level = bitPerNode * (depth - 1);
-
         while (level > 0) {
             int index = ((head.size - 1) >> level) & mask;
             Node<E> tmp, newNode;
@@ -270,22 +258,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         return true;
     }
 
-    private Node<E> getLeaf(Head<E> head, int index) {
-        if (index >= head.size) {
-            throw new IndexOutOfBoundsException();
-        }
-
-        int level = bitPerLevel - bitPerNode;
-        Node<E> node = head.root;
-
-        while (level > 0) {
-            int tempIndex = (index >> level) & mask;
-            node = node.child.get(tempIndex);
-            level -= bitPerNode;
-        }
-        return node;
-    }
-
     private E get(Head<E> head, int index) {
         if (!((index < head.size) && (index >= 0))) {
             throw new IndexOutOfBoundsException();
@@ -296,14 +268,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
     @Override
     public E get(int index) {
         return get(getCurrentHead(), index);
-    }
-
-    private Head<E> getCurrentHead() {
-        return this.undo.peek();
-    }
-
-    public int size(Head<E> head) {
-        return head.size;
     }
 
     @Override
@@ -323,7 +287,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
 
     @Override
     public Iterator<E> iterator() {
-        return new PersistentArrayIterator<E>();
+        return new PersistentArrayIterator<>();
     }
 
     private Object[] toArray(Head<E> head) {
@@ -392,6 +356,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> {
         pair.getKey().value.set(pair.getValue(), element);
         return get(index);
     }
+
 
     @Override
     public int indexOf(Object o) {

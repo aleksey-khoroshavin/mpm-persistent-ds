@@ -30,7 +30,6 @@ public class Node<E> {
             for (int i = 0; i <= maxIndex; i++) {
                 child.add(other.child.get(i));
             }
-
         }
 
         if (other.value != null) {
@@ -78,13 +77,15 @@ public class Node<E> {
         String hash = String.format("%09x", node.hashCode()) + " ";
         StringBuilder result = new StringBuilder();
         if (node.child == null) {
-            if (node.value == null) {
+            if (node.value == null)
                 return drawTab(level) + hash + "\n";
-            } else {
+            else
                 return drawTab(level) + hash + node.value.toString() + "\n";
-            }
         } else {
-            result.append(drawTab(level)).append(hash).append("\n");
+            result
+                    .append(drawTab(level))
+                    .append(hash)
+                    .append("\n");
 
             for (Node<E> n : node.child) {
                 result.append(drawGraph(n, level + 1));
