@@ -5,16 +5,18 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PersistentArrayTest {
 
-    PersistentArray<String> persistentArray = new PersistentArray<>(32);
+    PersistentArray<String> pa = new PersistentArray<>(32);
 
     private void addABC() {
-        persistentArray.add("A");
-        persistentArray.add("B");
-        persistentArray.add("C");
+        pa.add("A");
+        pa.add("B");
+        pa.add("C");
     }
 
     private <E> String valuesToString(PersistentArray<E> array) {
@@ -28,57 +30,57 @@ public class PersistentArrayTest {
     @Test
     public void testPersistentArrayAddAndGet() {
         addABC();
-        assertEquals("A", persistentArray.get(0));
-        assertEquals("B", persistentArray.get(1));
-        assertEquals("C", persistentArray.get(2));
+        assertEquals("A", pa.get(0));
+        assertEquals("B", pa.get(1));
+        assertEquals("C", pa.get(2));
     }
 
     @Test
     public void testPersistentArrayToArray() {
         addABC();
-        String[] strings = new String[persistentArray.size()];
-        persistentArray.toArray(strings);
+        String[] strings = new String[pa.size()];
+        pa.toArray(strings);
         assertEquals("[A, B, C]", Arrays.toString(strings));
     }
 
     @Test
     public void testPersistentArraySize() {
-        assertEquals(persistentArray.size(), 0);
+        assertEquals(pa.size(), 0);
         addABC();
-        assertEquals(persistentArray.size(), 3);
+        assertEquals(pa.size(), 3);
     }
 
     @Test
     public void testPersistentArrayIsEmpty() {
-        assertTrue(persistentArray.isEmpty());
-        persistentArray.add("A");
-        assertFalse(persistentArray.isEmpty());
+        assertTrue(pa.isEmpty());
+        pa.add("A");
+        assertFalse(pa.isEmpty());
     }
 
     @Test
     public void testPersistentArrayUndoRedo() {
         addABC();
-        persistentArray.undo();
-        persistentArray.undo();
-        assertEquals("A", valuesToString(persistentArray));
+        pa.undo();
+        pa.undo();
+        assertEquals("A", valuesToString(pa));
 
-        persistentArray.redo();
-        assertEquals("AB", valuesToString(persistentArray));
+        pa.redo();
+        assertEquals("AB", valuesToString(pa));
 
-        persistentArray.undo();
-        persistentArray.undo();
-        assertEquals("", valuesToString(persistentArray));
+        pa.undo();
+        pa.undo();
+        assertEquals("", valuesToString(pa));
 
-        persistentArray.redo();
-        persistentArray.redo();
-        persistentArray.redo();
-        assertEquals("ABC", valuesToString(persistentArray));
+        pa.redo();
+        pa.redo();
+        pa.redo();
+        assertEquals("ABC", valuesToString(pa));
     }
 
     @Test
     public void testPersistentArrayIterator() {
         addABC();
-        Iterator<String> i = persistentArray.iterator();
+        Iterator<String> i = pa.iterator();
         assertEquals("A", i.next());
         assertEquals("B", i.next());
         assertEquals("C", i.next());
@@ -89,47 +91,48 @@ public class PersistentArrayTest {
     public void testPersistentArrayForEach() {
         addABC();
         StringBuilder stringBuilder = new StringBuilder();
-        for (String s : persistentArray) {
+        for (String s : pa) {
             stringBuilder.append(s);
         }
         assertEquals("ABC", stringBuilder.toString());
 
+
         stringBuilder = new StringBuilder();
-        persistentArray.forEach(stringBuilder::append);
+        pa.forEach(stringBuilder::append);
         assertEquals("ABC", stringBuilder.toString());
     }
 
     @Test
     public void testPersistentArrayPop() {
         addABC();
-        assertEquals("C", persistentArray.pop());
-        assertEquals("B", persistentArray.pop());
-        persistentArray.undo();
-        persistentArray.undo();
-        assertEquals("C", persistentArray.pop());
+        assertEquals("C", pa.pop());
+        assertEquals("B", pa.pop());
+        pa.undo();
+        pa.undo();
+        assertEquals("C", pa.pop());
     }
 
     @Test
     public void testPersistentArraySet() {
         addABC();
-        assertEquals("ABC", valuesToString(persistentArray));
-        persistentArray.set(0, "Q");
-        persistentArray.set(1, "W");
-        persistentArray.set(2, "E");
-        assertEquals("QWE", valuesToString(persistentArray));
-        persistentArray.undo();
-        persistentArray.undo();
-        persistentArray.undo();
-        assertEquals("ABC", valuesToString(persistentArray));
+        assertEquals("ABC", valuesToString(pa));
+        pa.set(0, "Q");
+        pa.set(1, "W");
+        pa.set(2, "E");
+        assertEquals("QWE", valuesToString(pa));
+        pa.undo();
+        pa.undo();
+        pa.undo();
+        assertEquals("ABC", valuesToString(pa));
     }
 
     @Test
     public void testPersistentArrayCascade() {
-        persistentArray.add("A");
+        pa.add("A");
 
-        PersistentArray<String> v2 = persistentArray.conj("B");
+        PersistentArray<String> v2 = pa.conj("B");
 
-        assertEquals("A", valuesToString(persistentArray));
+        assertEquals("A", valuesToString(pa));
         assertEquals("AB", valuesToString(v2));
 
         PersistentArray<String> v3 = v2.assoc(0, "C");
@@ -139,16 +142,19 @@ public class PersistentArrayTest {
 
     @Test
     public void testPersistentArrayStream() {
-        PersistentArray<Integer> persistentArray = new PersistentArray<>();
-        persistentArray.add(4);
-        persistentArray.add(5);
-        persistentArray.add(6);
-        persistentArray.add(7);
+        PersistentArray<Integer> pa = new PersistentArray<>();
+        pa.add(4);
+        pa.add(5);
+        pa.add(6);
+        pa.add(7);
 
-        assertEquals("[12, 14]", Arrays.toString(persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+        assertEquals("[12, 14]", Arrays.toString(
+                pa.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
 
-        persistentArray.undo();
+        pa.undo();
 
-        assertEquals("[12]", Arrays.toString(persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+        assertEquals("[12]", Arrays.toString(
+                pa.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+
     }
 }
