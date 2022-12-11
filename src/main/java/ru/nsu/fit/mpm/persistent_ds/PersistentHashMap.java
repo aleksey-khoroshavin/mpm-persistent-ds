@@ -1,21 +1,26 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.Stack;
 
 public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRedo {
 
-    private PersistentArray<LinkedList<Pair<K, V>>> table;
+    private ArrayList<PersistentLinkedList<Pair<K, V>>> table;
+    private final int tableMaxSize = 16;
+    private Stack<Integer> redo = new Stack<>();
+    private Stack<Integer> undo = new Stack<>();
 
     public PersistentHashMap() {
-        this.table = new PersistentArray<>(16);
-        for (int i = 0; i < table.maxSize; i++) {
-            table.add(new LinkedList<>());
+        this.table = new ArrayList<>(30);
+        for (int i = 0; i < tableMaxSize; i++) {
+            table.add(new PersistentLinkedList<>());
         }
     }
 
@@ -26,18 +31,20 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
         for (int i = 0; i < table.get(index).size(); i++) {
             Pair<K, V> pair = table.get(index).get(i);
             if (pair.getKey().equals(key)) {
-                pair.setValue(value);
+                table.get(index).get(i).setValue(value);
                 return value;
             }
         }
 
         table.get(index).add(new Pair<>(key, value));
+        undo.push(index);
+        redo.clear();
         return value;
     }
 
     @Override
     public V remove(Object key) {
-        for (LinkedList<Pair<K, V>> pairs : table) {
+        for (PersistentLinkedList<Pair<K, V>> pairs : table) {
             for (int j = 0; j < pairs.size(); j++) {
                 if (pairs.get(j).key.equals(key)) {
                     V value = pairs.get(j).getValue();
@@ -46,6 +53,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
                 }
             }
         }
+
         return null;
     }
 
@@ -58,7 +66,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
 
     @Override
     public void clear() {
-        for (LinkedList<Pair<K, V>> pairs : table) {
+        for (PersistentLinkedList<Pair<K, V>> pairs : table) {
             pairs.clear();
         }
     }
@@ -66,7 +74,8 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     @Override
     public V get(Object key) {
         int index = calculateIndex(key.hashCode());
-        for (Pair<K, V> pair : table.get(index)) {
+        PersistentLinkedList<Pair<K, V>> get = table.get(index);
+        for (Pair<K, V> pair : get) {
             if (pair.getKey().equals(key)) {
                 return pair.getValue();
             }
@@ -77,7 +86,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     @Override
     public Set<K> keySet() {
         Set<K> setKey = new HashSet<>();
-        for (LinkedList<Pair<K, V>> pairs : table) {
+        for (PersistentLinkedList<Pair<K, V>> pairs : table) {
             for (Pair<K, V> pair : pairs) {
                 setKey.add(pair.getKey());
             }
@@ -88,7 +97,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     @Override
     public List<V> values() {
         List<V> values = new LinkedList<>();
-        for (LinkedList<Pair<K, V>> pairs : table) {
+        for (PersistentLinkedList<Pair<K, V>> pairs : table) {
             for (Pair<K, V> pair : pairs) {
                 values.add(pair.getValue());
             }
@@ -99,7 +108,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     @Override
     public Set<Map.Entry<K, V>> entrySet() {
         Set<Map.Entry<K, V>> es = new HashSet<>();
-        for (LinkedList<Pair<K, V>> pairs : table) {
+        for (PersistentLinkedList<Pair<K, V>> pairs : table) {
             es.addAll(pairs);
         }
         return es;
@@ -122,15 +131,19 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     }
 
     private int calculateIndex(int hashcode) {
-        return hashcode & (table.maxSize - 1);
+        return hashcode & (tableMaxSize - 1);
     }
 
     @Override
     public void undo() {
+        table.get(undo.peek()).undo();
+        redo.push(undo.pop());
     }
 
     @Override
     public void redo() {
+        table.get(redo.peek()).redo();
+        undo.push(redo.pop());
     }
 
     static class Pair<K, V> implements Map.Entry<K, V> {

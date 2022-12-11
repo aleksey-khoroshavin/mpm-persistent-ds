@@ -5,7 +5,10 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PersistentArrayTest {
     PersistentArray<String> persistentArray;
@@ -23,14 +26,6 @@ public class PersistentArrayTest {
         persistentArray.add("A");
         persistentArray.add("B");
         persistentArray.add("C");
-    }
-
-    private <E> String valuesToString(PersistentArray<E> array) {
-        StringBuilder stringBuilder = new StringBuilder();
-        for (E e : array) {
-            stringBuilder.append(e.toString());
-        }
-        return stringBuilder.toString();
     }
 
     @Test
@@ -85,17 +80,17 @@ public class PersistentArrayTest {
         assertEquals(4, persistentArray.getVersionCount());
         persistentArray.undo();
         assertEquals(4, persistentArray.getVersionCount());
-        assertEquals("A", valuesToString(persistentArray));
+        assertEquals("[A]", persistentArray.toString());
 
         persistentArray.redo();
         assertEquals(4, persistentArray.getVersionCount());
-        assertEquals("AB", valuesToString(persistentArray));
+        assertEquals("[A, B]", persistentArray.toString());
 
         persistentArray.undo();
         assertEquals(4, persistentArray.getVersionCount());
         persistentArray.undo();
         assertEquals(4, persistentArray.getVersionCount());
-        assertEquals("", valuesToString(persistentArray));
+        assertEquals("[]", persistentArray.toString());
 
         persistentArray.redo();
         assertEquals(4, persistentArray.getVersionCount());
@@ -103,7 +98,47 @@ public class PersistentArrayTest {
         assertEquals(4, persistentArray.getVersionCount());
         persistentArray.redo();
         assertEquals(4, persistentArray.getVersionCount());
-        assertEquals("ABC", valuesToString(persistentArray));
+        assertEquals("[A, B, C]", persistentArray.toString());
+    }
+
+    @Test
+    public void testPersistentArrayInsertedUndoRedo() {
+        PersistentArray<PersistentArray<String>> persistentArrays = new PersistentArray<>();
+        PersistentArray<String> child1 = new PersistentArray<>();
+        PersistentArray<String> child2 = new PersistentArray<>();
+        PersistentArray<String> child3 = new PersistentArray<>();
+        persistentArrays.add(child1);
+        persistentArrays.add(child2);
+        persistentArrays.add(child3);
+
+        persistentArrays.get(0).add("1");
+        persistentArrays.get(0).add("2");
+        persistentArrays.get(0).add("3");
+
+        persistentArrays.get(1).add("11");
+        persistentArrays.get(1).add("22");
+        persistentArrays.get(1).add("33");
+
+        persistentArrays.get(2).add("111");
+        persistentArrays.get(2).add("222");
+        persistentArrays.get(2).add("333");
+
+        assertEquals("[[1, 2, 3], [11, 22, 33], [111, 222, 333]]", persistentArrays.toString());
+        persistentArrays.undo();
+        assertEquals("[[1, 2, 3], [11, 22, 33], [111, 222]]", persistentArrays.toString());
+
+        PersistentArray<String> child4 = new PersistentArray<>();
+        persistentArrays.add(1, child4);
+        child4.add("test_string_1");
+        assertEquals("[[1, 2, 3], [test_string_1], [11, 22, 33], [111, 222]]", persistentArrays.toString());
+        persistentArrays.undo();
+        assertEquals("[[1, 2, 3], [], [11, 22, 33], [111, 222]]", persistentArrays.toString());
+
+        persistentArrays.get(0).set(0, "test_string_2");
+        persistentArrays.get(0).set(1, "test_string_3");
+        assertEquals("[[test_string_2, test_string_3, 3], [], [11, 22, 33], [111, 222]]", persistentArrays.toString());
+        persistentArrays.undo();
+        assertEquals("[[test_string_2, 2, 3], [], [11, 22, 33], [111, 222]]", persistentArrays.toString());
     }
 
     @Test
@@ -143,13 +178,13 @@ public class PersistentArrayTest {
     @Test
     public void testPersistentArraySet() {
         addABC();
-        assertEquals("ABC", valuesToString(persistentArray));
+        assertEquals("[A, B, C]", persistentArray.toString());
         persistentArray.set(0, "Q");
         persistentArray.set(1, "W");
-        assertEquals("QWC", valuesToString(persistentArray));
+        assertEquals("[Q, W, C]", persistentArray.toString());
         persistentArray.undo();
         persistentArray.undo();
-        assertEquals("ABC", valuesToString(persistentArray));
+        assertEquals("[A, B, C]", persistentArray.toString());
     }
 
     @Test
@@ -159,12 +194,12 @@ public class PersistentArrayTest {
 
         PersistentArray<String> v2 = persistentArray.conj("B");
 
-        assertEquals("A", valuesToString(persistentArray));
-        assertEquals("AB", valuesToString(v2));
+        assertEquals("[A]", persistentArray.toString());
+        assertEquals("[A, B]", v2.toString());
 
         PersistentArray<String> v3 = v2.assoc(0, "C");
 
-        assertEquals("CB", valuesToString(v3));
+        assertEquals("[C, B]", v3.toString());
     }
 
     @Test
@@ -182,6 +217,7 @@ public class PersistentArrayTest {
 
         assertEquals("[12]", Arrays.toString(
                 persistentArray.stream().map(i -> i * 2).filter(x -> x > 10).toArray()));
+
     }
 
     @Test
@@ -220,9 +256,9 @@ public class PersistentArrayTest {
         persistentArray.add("6");
         persistentArray.add("9");
         persistentArray.add("1");
-        assertEquals("37691", valuesToString(persistentArray));
+        assertEquals("[3, 7, 6, 9, 1]", persistentArray.toString());
         persistentArray.add(3, "8");
-        assertEquals("376891", valuesToString(persistentArray));
+        assertEquals("[3, 7, 6, 8, 9, 1]", persistentArray.toString());
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.add(-1, "8"));
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.add(6, "8"));
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.add(9999, "8"));
@@ -231,7 +267,7 @@ public class PersistentArrayTest {
     @Test
     public void testPersistentArrayToString() {
         addABC();
-        assertEquals("size: 3; unique leafs: 3; array: [A, B, C]", persistentArray.toString());
+        assertEquals("[A, B, C]", persistentArray.toString());
     }
 
     @Test
@@ -244,15 +280,15 @@ public class PersistentArrayTest {
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(999));
 
         assertEquals("B", persistentArray.remove(1));
-        assertEquals("AC", valuesToString(persistentArray));
+        assertEquals("[A, C]", persistentArray.toString());
         assertEquals(4, persistentArray.calcUniqueLeafs());
 
         assertEquals("C", persistentArray.remove(1));
-        assertEquals("A", valuesToString(persistentArray));
+        assertEquals("[A]", persistentArray.toString());
         assertEquals(5, persistentArray.calcUniqueLeafs());
 
         assertEquals("A", persistentArray.remove(0));
-        assertEquals("", valuesToString(persistentArray));
+        assertEquals("[]", persistentArray.toString());
         assertEquals(5, persistentArray.calcUniqueLeafs());
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(0));
     }
@@ -261,9 +297,9 @@ public class PersistentArrayTest {
     public void testPersistentArrayClear() {
         addABC();
         persistentArray.clear();
-        assertEquals("", valuesToString(persistentArray));
+        assertEquals("[]", persistentArray.toString());
         persistentArray.undo();
-        assertEquals("ABC", valuesToString(persistentArray));
+        assertEquals("[A, B, C]", persistentArray.toString());
     }
 
     @Test

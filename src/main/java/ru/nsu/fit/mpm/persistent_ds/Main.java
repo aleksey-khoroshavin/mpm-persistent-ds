@@ -4,11 +4,38 @@ import java.util.Arrays;
 
 public class Main {
     public static void main(String[] args) {
-        listPresentation();
+        hashMapPresentation();
+    }
+
+    private static void hashMapPresentation() {
+        PersistentHashMap<String, Integer> persistentHashMap = new PersistentHashMap<>();
+        persistentHashMap.put("key_1", 10);
+        persistentHashMap.put("key_2", 11);
+        System.out.println("2 elem\t\t\t" + persistentHashMap.toString());
+        persistentHashMap.undo();
+        System.out.println("undo\t\t\t" + persistentHashMap.toString());
+        persistentHashMap.redo();
+        System.out.println("redo\t\t\t" + persistentHashMap.toString());
+
+        System.out.println();
+        persistentHashMap.put("key_3", 12);
+        System.out.println("add key_3\t\t" + persistentHashMap.toString());
+        persistentHashMap.put("key_3", 1000);
+        System.out.println("modify key_3\t" + persistentHashMap.toString());
+        persistentHashMap.undo();
+        System.out.println("undo\t\t\t" + persistentHashMap.toString());
+
+        System.out.println();
+        persistentHashMap.put("key_4", -99);
+        System.out.println("add key_4\t\t" + persistentHashMap.toString());
+        persistentHashMap.remove("key_4");
+        System.out.println("remove key_4\t\t" + persistentHashMap.toString());
+        persistentHashMap.undo();
+        System.out.println("undo\t\t\t" + persistentHashMap.toString());
     }
 
     private static void listPresentation() {
-        System.out.println("\n" + "list");
+        System.out.println("\n\nlist");
         PersistentLinkedList<Integer> persistentLinkedList = new PersistentLinkedList<>(3, 1);
 
         persistentLinkedList.add(3);
@@ -33,10 +60,9 @@ public class Main {
     }
 
     private static void arrayPresentation() {
-        simpersistentLinkedList();
+        simple();
         arrayStrings();
         nesting();
-
     }
 
     private static void nesting() {
@@ -85,8 +111,7 @@ public class Main {
         System.out.println(version3.drawGraph());
     }
 
-    private static void simpersistentLinkedList() {
-        System.out.println("\n" + "array");
+    private static void simple() {
         PersistentArray<String> persistentArray = new PersistentArray<>(28);
         System.out.println("maxSize = " + persistentArray.maxSize);
 

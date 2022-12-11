@@ -51,7 +51,9 @@ class PersistentHashMapTest {
         }
         stringBuilder.deleteCharAt(stringBuilder.lastIndexOf(" "));
         stringBuilder.append("]");
-        System.out.println(stringBuilder);
+        assertTrue(stringBuilder.toString().contains("A=1"));
+        assertTrue(stringBuilder.toString().contains("B=2"));
+        assertTrue(stringBuilder.toString().contains("C=3"));
     }
 
     @Test

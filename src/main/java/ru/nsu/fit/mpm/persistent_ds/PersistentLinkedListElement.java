@@ -15,6 +15,10 @@ public class PersistentLinkedListElement<E> {
         this.value = value;
     }
 
+    public PersistentLinkedListElement(int next) {
+        this.next = next;
+    }
+
     public PersistentLinkedListElement(PersistentLinkedListElement<E> other) {
         this.next = other.next;
         this.prev = other.prev;

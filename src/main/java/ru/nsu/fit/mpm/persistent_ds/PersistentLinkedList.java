@@ -2,7 +2,14 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Stack;
 
 public class PersistentLinkedList<E> extends AbstractPersistentCollection<PersistentLinkedListElement<E>> implements List<E> {
 
@@ -29,6 +36,7 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         this.undo.addAll(other.undo);
         this.redo.addAll(other.redo);
     }
+
 
     public void undo() {
         if (!undo.empty()) {
@@ -86,21 +94,36 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
 
     @Override
     public Iterator<E> iterator() {
-        return null;
+        return new PersistentListIterator<>();
     }
 
-    private Object[] toArray(HeadList<PersistentLinkedListElement<E>> head) {
-        Object[] objects = new Object[head.size];
-        for (int i = 0; i < objects.length; i++) {
-            objects[i] = this.get(head, i);
-        }
-        return objects;
+    public Iterator<E> iterator(HeadList<PersistentLinkedListElement<E>> head) {
+        return new PersistentListIterator<>(head);
+    }
+
+    @Override
+    public String toString() {
+        return toString(getCurrentHead());
+    }
+
+    private String toString(HeadList<PersistentLinkedListElement<E>> head) {
+        return Arrays.toString(toArray(head));
     }
 
     @Override
     public Object[] toArray() {
         return toArray(getCurrentHead());
     }
+
+    private Object[] toArray(HeadList<PersistentLinkedListElement<E>> head) {
+        Object[] objects = new Object[head.size];
+        Iterator<E> iterator = iterator(head);
+        for (int i = 0; i < objects.length; i++) {
+            objects[i] = iterator.next();
+        }
+        return objects;
+    }
+
 
     @Override
     public <T> T[] toArray(T[] a) {
@@ -138,7 +161,7 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         int indexBefore = -1;
         int indexAfter = -1;
 
-        if (prevHead.size == 0) {
+        if (prevHead.sizeTree == 0) {
             newHead = new HeadList<>(prevHead);
         } else {
             if (index != 0) {
@@ -182,14 +205,11 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
     }
 
     private int getTreeIndex(HeadList<PersistentLinkedListElement<E>> head, int listIndex) {
-        int result = -1;
-
+        checkIndex(listIndex, head);
         if (head.size == 0) {
-            return result;
+            return -1;
         }
-
-        result = head.first;
-
+        int result = head.first;
         PersistentLinkedListElement<E> current;
 
         for (int i = 0; i < listIndex; i++) {
@@ -315,14 +335,17 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         return get(getCurrentHead(), index);
     }
 
-    private E get(HeadList<PersistentLinkedListElement<E>> head, int index) {
+    private PersistentLinkedListElement<E> getPersistentLinkedListElement(HeadList<PersistentLinkedListElement<E>> head, int index) {
         checkIndex(index);
-
         int treeIndex = getTreeIndex(index);
-        if (treeIndex == -1)
+        if (treeIndex == -1) {
             throw new IndexOutOfBoundsException("getTreeIndex == -1");
+        }
+        return getLeaf(head, treeIndex).getKey().value.get(treeIndex & mask);
+    }
 
-        return getLeaf(head, treeIndex).getKey().value.get(treeIndex & mask).value;
+    private E get(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        return getPersistentLinkedListElement(head, index).value;
     }
 
     protected Pair<Node<PersistentLinkedListElement<E>>, Integer> getLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
@@ -411,5 +434,37 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
     @Override
     public List<E> subList(int fromIndex, int toIndex) {
         return null;
+    }
+
+    public class PersistentListIterator<E2> implements java.util.Iterator<E2> {
+
+        PersistentLinkedListElement<E> current;
+        HeadList<PersistentLinkedListElement<E>> head;
+
+        public PersistentListIterator(HeadList<PersistentLinkedListElement<E>> head) {
+            this.head = head;
+            current = new PersistentLinkedListElement<E>(head.first);
+        }
+
+        public PersistentListIterator() {
+            this.head = getCurrentHead();
+            current = new PersistentLinkedListElement<E>(head.first);
+        }
+
+        @Override
+        public boolean hasNext() {
+            return current.next != -1;
+        }
+
+        @Override
+        public E2 next() {
+            Pair<Node<PersistentLinkedListElement<E>>, Integer> tmp = getLeaf(head, current.next);
+            current = tmp.getKey().value.get(tmp.getValue());
+            return (E2) current.value;
+        }
+
+        @Override
+        public void remove() {
+        }
     }
 }
