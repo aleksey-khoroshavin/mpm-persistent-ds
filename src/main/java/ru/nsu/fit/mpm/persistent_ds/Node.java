@@ -42,8 +42,8 @@ public class Node<E> {
 
     @Override
     public String toString() {
-        String childs = child == null ? "[null]" : Arrays.toString(child.toArray());
-        String values = value == null ? "[null]" : Arrays.toString(value.toArray());
+        String childs = child == null ? "[child null]" : Arrays.toString(child.toArray());
+        String values = value == null ? "[value null]" : Arrays.toString(value.toArray());
         return String.format("%09x %s %s", hashCode(), childs, values);
     }
 

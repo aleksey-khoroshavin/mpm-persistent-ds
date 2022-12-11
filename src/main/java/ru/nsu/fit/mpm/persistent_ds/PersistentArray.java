@@ -2,15 +2,7 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.NoSuchElementException;
-import java.util.Stack;
+import java.util.*;
 
 public class PersistentArray<E> extends AbstractPersistentCollection<E> implements List<E> {
 
@@ -361,7 +353,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
     }
 
     public String drawGraph() {
-        return getCurrentHead() + "\n" + getCurrentHead().root.drawGraph();
+        return getCurrentHead().root.drawGraph();
     }
 
     @Override
