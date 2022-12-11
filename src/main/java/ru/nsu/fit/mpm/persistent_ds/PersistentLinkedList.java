@@ -107,6 +107,15 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         return null;
     }
 
+    public void checkIndex(int index) {
+        checkIndex(index, getCurrentHead());
+    }
+
+    public void checkIndex(int index, HeadList<PersistentLinkedListElement<E>> head) {
+        if (!((index >= 0) && (index < head.size)))
+            throw new IndexOutOfBoundsException("Invalid index");
+    }
+
     public boolean isFull() {
         return isFull(getCurrentHead());
     }
@@ -115,6 +124,82 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         return head.sizeTree >= maxSize;
     }
 
+    @Override
+    public void add(int index, E value) {
+        if (isFull()) {
+            throw new IllegalStateException("array is full");
+        }
+
+        HeadList<PersistentLinkedListElement<E>> prevHead = getCurrentHead();
+        HeadList<PersistentLinkedListElement<E>> newHead = null;
+
+        checkIndex(index, prevHead);
+
+        int indexBefore = -1;
+        int indexAfter = -1;
+
+        if (prevHead.size == 0) {
+            newHead = new HeadList<>(prevHead);
+        } else {
+            if (index != 0) {
+                indexBefore = getTreeIndex(index - 1);
+                CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> before = copyLeaf(prevHead, indexBefore);
+                PersistentLinkedListElement<E> beforeE = new PersistentLinkedListElement<>(before.leaf.value.get(before.leafInnerIndex));
+                beforeE.next = prevHead.sizeTree;
+                before.leaf.value.set(before.leafInnerIndex, beforeE);
+                newHead = before.head;
+            }
+
+            if (index != prevHead.size - 1) {
+                indexAfter = getTreeIndex(index);
+                HeadList<PersistentLinkedListElement<E>> prevHead2 = newHead != null ? newHead : prevHead;
+                CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> after = copyLeaf(prevHead2, indexAfter);
+                PersistentLinkedListElement<E> afterE = new PersistentLinkedListElement<>(after.leaf.value.get(after.leafInnerIndex));
+                afterE.prev = prevHead.sizeTree;
+                after.leaf.value.set(after.leafInnerIndex, afterE);
+                newHead = after.head;
+            }
+        }
+
+        undo.push(newHead);
+        redo.clear();
+
+        PersistentLinkedListElement<E> element = new PersistentLinkedListElement<>(value, indexBefore, indexAfter);
+
+        if (indexBefore == -1) {
+            newHead.first = newHead.sizeTree;
+        }
+
+        if (indexAfter == -1) {
+            newHead.last = newHead.sizeTree;
+        }
+
+        findLeafForNewElement(newHead).value.add(element);
+    }
+
+    private int getTreeIndex(int listIndex) {
+        return getTreeIndex(getCurrentHead(), listIndex);
+    }
+
+    private int getTreeIndex(HeadList<PersistentLinkedListElement<E>> head, int listIndex) {
+        int result = -1;
+
+        if (head.size == 0) {
+            return result;
+        }
+
+        result = head.first;
+
+        PersistentLinkedListElement<E> current;
+
+        for (int i = 0; i < listIndex; i++) {
+            Pair<Node<PersistentLinkedListElement<E>>, Integer> pair = getLeaf(head, result);
+            current = pair.getKey().value.get(pair.getValue());
+            result = current.next;
+        }
+
+        return result;
+    }
 
     @Override
     public boolean add(E newValue) {
@@ -125,29 +210,31 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         PersistentLinkedListElement<E> element;
 
         HeadList<PersistentLinkedListElement<E>> prevHead = getCurrentHead();
-        HeadList<PersistentLinkedListElement<E>> head;
+        HeadList<PersistentLinkedListElement<E>> newHead;
 
         if (getCurrentHead().size == 0) {
-            head = new HeadList<>(prevHead);
-            undo.push(head);
-            redo.clear();
+            newHead = new HeadList<>(prevHead);
             element = new PersistentLinkedListElement<>(newValue, -1, -1);
-            head.first = head.sizeTree;
+            newHead.first = newHead.sizeTree;
         } else {
             element = new PersistentLinkedListElement<>(newValue, prevHead.last, -1);
-            Pair<Node<PersistentLinkedListElement<E>>, Integer> pair = copyLeaf(prevHead, prevHead.last);
-            head = getCurrentHead();
-            PersistentLinkedListElement<E> prev = new PersistentLinkedListElement<>(pair.getKey().value.get(pair.getValue()));
-            prev.next = head.sizeTree;
-            pair.getKey().value.set(pair.getValue(), prev);
+            CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> tmp = copyLeaf(prevHead, prevHead.last);
+            newHead = tmp.head;
+            PersistentLinkedListElement<E> prev = new PersistentLinkedListElement<>(tmp.leaf.value.get(tmp.leafInnerIndex));
+            prev.next = newHead.sizeTree;
+            tmp.leaf.value.set(tmp.leafInnerIndex, prev);
         }
-        head.last = head.sizeTree;
+        newHead.last = newHead.sizeTree;
 
-        add2(head).value.add(element);
+        undo.push(newHead);
+        redo.clear();
+
+        findLeafForNewElement(newHead).value.add(element);
+
         return true;
     }
 
-    protected Node<PersistentLinkedListElement<E>> add2(HeadList<PersistentLinkedListElement<E>> head) {
+    protected Node<PersistentLinkedListElement<E>> findLeafForNewElement(HeadList<PersistentLinkedListElement<E>> head) {
         if (isFull(head)) {
             throw new IndexOutOfBoundsException("collection is full");
         }
@@ -223,14 +310,24 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
 
     }
 
+    @Override
+    public E get(int index) {
+        return get(getCurrentHead(), index);
+    }
+
     private E get(HeadList<PersistentLinkedListElement<E>> head, int index) {
-        if (!((index < head.size) && (index >= 0))) {
-            throw new IndexOutOfBoundsException();
-        }
-        return getLeaf(head, index).getKey().value.get(index & mask).value;
+        checkIndex(index);
+
+        int treeIndex = getTreeIndex(index);
+        if (treeIndex == -1)
+            throw new IndexOutOfBoundsException("getTreeIndex == -1");
+
+        return getLeaf(head, treeIndex).getKey().value.get(treeIndex & mask).value;
     }
 
     protected Pair<Node<PersistentLinkedListElement<E>>, Integer> getLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        checkIndex(index, head);
+
         if (index >= head.size) {
             throw new IndexOutOfBoundsException();
         }
@@ -247,14 +344,13 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         return new Pair<>(node, index & mask);
     }
 
-    private Pair<Node<PersistentLinkedListElement<E>>, Integer> copyLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
+    private CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> copyLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
         if (isFull()) {
             throw new IllegalStateException("array is full");
         }
+        checkIndex(index, head);
 
         HeadList<PersistentLinkedListElement<E>> newHead = new HeadList<>(head, 0);
-        undo.push(newHead);
-        redo.clear();
         Node<PersistentLinkedListElement<E>> currentNode = newHead.root;
         int level = bitPerNode * (depth - 1);
 
@@ -270,7 +366,7 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
             level -= bitPerNode;
         }
 
-        return new Pair<>(currentNode, index & mask);
+        return new CopyResult<>(currentNode, index & mask, newHead);
     }
 
     public int getVersionCount() {
@@ -279,22 +375,12 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
 
     public String drawGraph() {
         return "unique:" + getUniqueLeafsSize() + "; ver:" + getVersionCount() + "\n"
-                + getCurrentHead() + "\n" + getCurrentHead().root.drawGraph();
-    }
-
-    @Override
-    public E get(int index) {
-        return get(getCurrentHead(), index);
+                + getCurrentHead() + "\n" + getCurrentHead().root.drawGraph() + "\n";
     }
 
     @Override
     public E set(int index, E element) {
         return null;
-    }
-
-    @Override
-    public void add(int index, E element) {
-
     }
 
     @Override
