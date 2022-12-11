@@ -2,8 +2,12 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import org.junit.jupiter.api.Test;
 
+import java.util.Iterator;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PersistentLinkedListTest {
     PersistentLinkedList<Integer> persistentLinkedList;
@@ -28,15 +32,6 @@ public class PersistentLinkedListTest {
             persistentLinkedList.add(i);
     }
 
-    private <E> String valuesToString(PersistentLinkedList<E> list) {
-        StringBuilder stringBuilder = new StringBuilder();
-        for (int i = 0; i < list.size(); i++) {
-            stringBuilder.append(list.get(i));
-        }
-
-        return stringBuilder.toString();
-    }
-
     @Test
     public void add() {
         init(0);
@@ -47,7 +42,8 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(0, persistentLinkedList.getCurrentHead().last);
         assertEquals(1, persistentLinkedList.size());
-        assertEquals("3", valuesToString(persistentLinkedList));
+        assertEquals("[3]", persistentLinkedList.toString());
+
 
         persistentLinkedList.add(4);
         assertEquals(2, persistentLinkedList.getUniqueLeafsSize());
@@ -55,7 +51,7 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(1, persistentLinkedList.getCurrentHead().last);
         assertEquals(2, persistentLinkedList.size());
-        assertEquals("34", valuesToString(persistentLinkedList));
+        assertEquals("[3, 4]", persistentLinkedList.toString());
 
         persistentLinkedList.add(6);
         assertEquals(3, persistentLinkedList.getUniqueLeafsSize());
@@ -63,7 +59,7 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(2, persistentLinkedList.getCurrentHead().last);
         assertEquals(3, persistentLinkedList.size());
-        assertEquals("346", valuesToString(persistentLinkedList));
+        assertEquals("[3, 4, 6]", persistentLinkedList.toString());
 
         persistentLinkedList.add(9);
         assertEquals(4, persistentLinkedList.getUniqueLeafsSize());
@@ -71,7 +67,7 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(3, persistentLinkedList.getCurrentHead().last);
         assertEquals(4, persistentLinkedList.size());
-        assertEquals("3469", valuesToString(persistentLinkedList));
+        assertEquals("[3, 4, 6, 9]", persistentLinkedList.toString());
 
         persistentLinkedList.undo();
         assertEquals(4, persistentLinkedList.getUniqueLeafsSize());
@@ -79,7 +75,8 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(2, persistentLinkedList.getCurrentHead().last);
         assertEquals(3, persistentLinkedList.size());
-        assertEquals("346", valuesToString(persistentLinkedList));
+        assertEquals("[3, 4, 6]", persistentLinkedList.toString());
+
     }
 
     @Test
@@ -95,7 +92,7 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(4, persistentLinkedList.getCurrentHead().last);
         assertEquals(5, persistentLinkedList.size());
-        assertEquals("34607", valuesToString(persistentLinkedList));
+        assertEquals("[3, 4, 6, 0, 7]", persistentLinkedList.toString());
 
         persistentLinkedList.add(3, 9);
         assertEquals(6, persistentLinkedList.getUniqueLeafsSize());
@@ -103,7 +100,9 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(4, persistentLinkedList.getCurrentHead().last);
         assertEquals(6, persistentLinkedList.size());
-        assertEquals("346907", valuesToString(persistentLinkedList));
+        assertEquals("[3, 4, 6, 9, 0, 7]", persistentLinkedList.toString());
+
+
     }
 
     @Test
@@ -117,7 +116,7 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(2, persistentLinkedList.getCurrentHead().last);
         assertEquals(3, persistentLinkedList.size());
-        assertEquals("346", valuesToString(persistentLinkedList));
+        assertEquals("[3, 4, 6]", persistentLinkedList.toString());
 
         persistentLinkedList.add(1, 9);
         assertEquals(4, persistentLinkedList.getUniqueLeafsSize());
@@ -125,7 +124,7 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(2, persistentLinkedList.getCurrentHead().last);
         assertEquals(4, persistentLinkedList.size());
-        assertEquals("3946", valuesToString(persistentLinkedList));
+        assertEquals("[3, 9, 4, 6]", persistentLinkedList.toString());
 
         persistentLinkedList.add(1, 7);
         assertEquals(5, persistentLinkedList.getUniqueLeafsSize());
@@ -133,7 +132,7 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(2, persistentLinkedList.getCurrentHead().last);
         assertEquals(5, persistentLinkedList.size());
-        assertEquals("37946", valuesToString(persistentLinkedList));
+        assertEquals("[3, 7, 9, 4, 6]", persistentLinkedList.toString());
 
         persistentLinkedList.add(8);
         assertEquals(6, persistentLinkedList.getUniqueLeafsSize());
@@ -141,7 +140,7 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(5, persistentLinkedList.getCurrentHead().last);
         assertEquals(6, persistentLinkedList.size());
-        assertEquals("379468", valuesToString(persistentLinkedList));
+        assertEquals("[3, 7, 9, 4, 6, 8]", persistentLinkedList.toString());
     }
 
     @Test
@@ -155,7 +154,7 @@ public class PersistentLinkedListTest {
         assertEquals(0, persistentLinkedList.getCurrentHead().first);
         assertEquals(2, persistentLinkedList.getCurrentHead().last);
         assertEquals(3, persistentLinkedList.size());
-        assertEquals("123", valuesToString(persistentLinkedList));
+        assertEquals("[1, 2, 3]", persistentLinkedList.toString());
 
         persistentLinkedList.add(0, 4);
         assertEquals(6, persistentLinkedList.getUniqueLeafsSize());
@@ -163,7 +162,7 @@ public class PersistentLinkedListTest {
         assertEquals(3, persistentLinkedList.getCurrentHead().first);
         assertEquals(2, persistentLinkedList.getCurrentHead().last);
         assertEquals(4, persistentLinkedList.size());
-        assertEquals("4123", valuesToString(persistentLinkedList));
+        assertEquals("[4, 1, 2, 3]", persistentLinkedList.toString());
 
         persistentLinkedList.add(0, 5);
         assertEquals(8, persistentLinkedList.getUniqueLeafsSize());
@@ -171,8 +170,29 @@ public class PersistentLinkedListTest {
         assertEquals(4, persistentLinkedList.getCurrentHead().first);
         assertEquals(2, persistentLinkedList.getCurrentHead().last);
         assertEquals(5, persistentLinkedList.size());
-        assertEquals("54123", valuesToString(persistentLinkedList));
+        assertEquals("[5, 4, 1, 2, 3]", persistentLinkedList.toString());
 
         assertThrows(IndexOutOfBoundsException.class, () -> persistentLinkedList.add(5, 6));
+    }
+
+    @Test
+    public void testPersistentLinkedListIterator() {
+        init(3);
+        Iterator<Integer> i = persistentLinkedList.iterator();
+        assertTrue(i.hasNext());
+        assertEquals(Integer.valueOf(0), i.next());
+        assertEquals(Integer.valueOf(1), i.next());
+        assertEquals(Integer.valueOf(2), i.next());
+        assertFalse(i.hasNext());
+        persistentLinkedList.add(3);
+        assertFalse(i.hasNext());
+
+        i = persistentLinkedList.iterator();
+        assertTrue(i.hasNext());
+        assertEquals(Integer.valueOf(0), i.next());
+        assertEquals(Integer.valueOf(1), i.next());
+        assertEquals(Integer.valueOf(2), i.next());
+        assertEquals(Integer.valueOf(3), i.next());
+        assertFalse(i.hasNext());
     }
 }

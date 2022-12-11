@@ -2,7 +2,15 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
+import java.util.Stack;
 
 public class PersistentArray<E> extends AbstractPersistentCollection<E> implements List<E> {
 
@@ -15,9 +23,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
     }
 
     public PersistentArray(int depth, int bitPerNode) {
-
         super(depth, bitPerNode);
-
         HeadArray<E> head = new HeadArray<>();
         undo.push(head);
         redo.clear();
@@ -29,18 +35,31 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         this.redo.addAll(other.redo);
     }
 
+    private PersistentArray<PersistentArray<?>> parent;
+    private Stack<PersistentArray<?>> insertedUndo = new Stack<>();
+    private Stack<PersistentArray<?>> insertedRedo = new Stack<>();
     protected final Stack<HeadArray<E>> redo = new Stack<>();
     protected final Stack<HeadArray<E>> undo = new Stack<>();
 
     public void undo() {
-        if (!undo.empty()) {
-            redo.push(undo.pop());
+        if (!insertedUndo.empty()) {
+            insertedUndo.peek().undo();
+            insertedRedo.push(insertedUndo.pop());
+        } else {
+            if (!undo.empty()) {
+                redo.push(undo.pop());
+            }
         }
     }
 
     public void redo() {
-        if (!redo.empty()) {
-            undo.push(redo.pop());
+        if (!insertedRedo.empty()) {
+            insertedRedo.peek().redo();
+            insertedUndo.push(insertedRedo.pop());
+        } else {
+            if (!redo.empty()) {
+                undo.push(redo.pop());
+            }
         }
     }
 
@@ -113,9 +132,18 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return result;
     }
 
-    private String toString(HeadArray<E> head) {
+    private String debugInfo(HeadArray<E> head) {
         return "size: " + size(head) + "; unique leafs: "
-                + calcUniqueLeafs() + "; array: " + Arrays.toString(toArray(head));
+                + calcUniqueLeafs() + "; array: " + toString(head);
+    }
+
+    @Override
+    public String toString() {
+        return toString(getCurrentHead());
+    }
+
+    private String toString(HeadArray<E> head) {
+        return Arrays.toString(toArray(head));
     }
 
     public int size(HeadArray<E> head) {
@@ -142,10 +170,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return head.size >= maxSize;
     }
 
-    @Override
-    public String toString() {
-        return toString(getCurrentHead());
-    }
 
     @Override
     public boolean remove(Object o) {
@@ -255,7 +279,16 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         for (int i = index; i < oldHead.size; i++) {
             add(newHead, get(oldHead, i));
         }
+        tryParentUndo(value);
+    }
 
+    private void tryParentUndo(E value) {
+        if (value instanceof PersistentArray) {
+            ((PersistentArray) value).parent = this;
+        }
+        if (parent != null) {
+            parent.onEvent(this);
+        }
     }
 
     @Override
@@ -266,7 +299,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         HeadArray<E> newHead = new HeadArray<>(getCurrentHead(), 0);
         undo.push(newHead);
         redo.clear();
-
+        tryParentUndo(newElement);
         return add(newHead, newElement);
     }
 
@@ -274,6 +307,10 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         add2(head).value.add(newElement);
 
         return true;
+    }
+
+    private void onEvent(PersistentArray<?> persistentArray) {
+        insertedUndo.push(persistentArray);
     }
 
     private E get(HeadArray<E> head, int index) {
@@ -411,6 +448,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
     public E set(int index, E element) {
         Pair<Node<E>, Integer> pair = copyLeaf(getCurrentHead(), index);
         pair.getKey().value.set(pair.getValue(), element);
+        tryParentUndo(element);
         return get(index);
     }
 

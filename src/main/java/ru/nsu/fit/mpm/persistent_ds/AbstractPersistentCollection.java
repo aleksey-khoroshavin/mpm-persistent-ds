@@ -1,6 +1,6 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-public abstract class AbstractPersistentCollection<E> {
+public abstract class AbstractPersistentCollection<E> implements UndoRedo {
     public final int depth;
     public final int bitPerLevel;
     public final int mask;
