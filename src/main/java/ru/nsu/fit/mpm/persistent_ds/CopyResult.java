@@ -10,4 +10,9 @@ public class CopyResult<E, H> {
         this.leafInnerIndex = leafInnerIndex;
         this.head = head;
     }
+
+    @Override
+    public String toString() {
+        return leaf.toString() + "; " + leafInnerIndex + "; " + head.toString();
+    }
 }
