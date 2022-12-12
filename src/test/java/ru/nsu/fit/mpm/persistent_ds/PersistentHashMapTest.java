@@ -165,17 +165,17 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapModifyAndUndoRedo() {
-        persistentHashMap.put("Str1", 12);
+        persistentHashMap.put("key", 12);
         assertEquals(1, persistentHashMap.size());
-        assertEquals(Integer.valueOf(12), persistentHashMap.get("Str1"));
+        assertEquals(Integer.valueOf(12), persistentHashMap.get("key"));
 
-        persistentHashMap.put("Str1", 1000);
+        persistentHashMap.put("key", 1000);
         assertEquals(1, persistentHashMap.size());
-        assertEquals(Integer.valueOf(1000), persistentHashMap.get("Str1"));
+        assertEquals(Integer.valueOf(1000), persistentHashMap.get("key"));
 
         persistentHashMap.undo();
         assertEquals(1, persistentHashMap.size());
-        assertEquals(Integer.valueOf(12), persistentHashMap.get("Str1"));
+        assertEquals(Integer.valueOf(12), persistentHashMap.get("key"));
     }
 
     @Test
@@ -184,7 +184,43 @@ class PersistentHashMapTest {
         assertTrue(persistentHashMap.toString().contains("A=1"));
         assertTrue(persistentHashMap.toString().contains("B=2"));
         assertTrue(persistentHashMap.toString().contains("C=3"));
-
         assertEquals(13, persistentHashMap.toString().length());
+    }
+
+    @Test
+    void testPersistentHashMapCascade() {
+        PersistentHashMap<String, Integer> version1 = new PersistentHashMap<>();
+        version1.put("key1", 1);
+        PersistentHashMap<String, Integer> version2 = version1.conj("key2", 2);
+
+        assertEquals(Integer.valueOf(1), version1.get("key1"));
+        assertFalse(version1.containsKey("key2"));
+        assertEquals(1, version1.size());
+
+        assertEquals(Integer.valueOf(1), version2.get("key1"));
+        assertEquals(Integer.valueOf(2), version2.get("key2"));
+        assertEquals(2, version2.size());
+
+        PersistentHashMap<String, Integer> version3 = version2.conj("key1", 999);
+
+        assertEquals(Integer.valueOf(1), version1.get("key1"));
+        assertFalse(version1.containsKey("key2"));
+        assertEquals(1, version1.size());
+
+        assertEquals(Integer.valueOf(1), version2.get("key1"));
+        assertEquals(Integer.valueOf(2), version2.get("key2"));
+        assertEquals(2, version2.size());
+
+        assertEquals(Integer.valueOf(999), version3.get("key1"));
+        assertEquals(Integer.valueOf(2), version3.get("key2"));
+        assertEquals(2, version3.size());
+
+        version3.put("key3", 3);
+        version3.put("key4", 4);
+        assertEquals(4, version3.size());
+
+        version3.remove("key3");
+        assertFalse(version3.containsKey("key3"));
+        assertEquals(3, version3.size());
     }
 }

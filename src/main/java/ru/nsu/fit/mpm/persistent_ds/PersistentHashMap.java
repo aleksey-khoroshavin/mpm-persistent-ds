@@ -16,12 +16,24 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     private final int tableMaxSize = 16;
     private Stack<Integer> redo = new Stack<>();
     private Stack<Integer> undo = new Stack<>();
+    private PersistentHashMap<?, PersistentHashMap<?, ?>> parent;
+    private Stack<PersistentHashMap<?, ?>> insertedUndo = new Stack<>();
+    private Stack<PersistentHashMap<?, ?>> insertedRedo = new Stack<>();
 
     public PersistentHashMap() {
         this.table = new ArrayList<>(30);
         for (int i = 0; i < tableMaxSize; i++) {
             table.add(new PersistentLinkedList<>());
         }
+    }
+
+    public PersistentHashMap(PersistentHashMap<K, V> other) {
+        this.table = new ArrayList<>(30);
+        for (int i = 0; i < tableMaxSize; i++) {
+            table.add(new PersistentLinkedList<>(other.table.get(i)));
+        }
+        this.undo.addAll(other.undo);
+        this.redo.addAll(other.redo);
     }
 
     @Override
@@ -39,6 +51,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
         table.get(index).add(new Pair<>(key, value));
         undo.push(index);
         redo.clear();
+        tryParentUndo(value);
         return value;
     }
 
@@ -129,20 +142,54 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
         return stringBuilder.toString();
     }
 
+    public PersistentHashMap<K, V> conj(K key, V value) {
+        PersistentHashMap<K, V> result = new PersistentHashMap<>(this);
+        result.put(key, value);
+        return result;
+    }
+
     private int calculateIndex(int hashcode) {
         return hashcode & (tableMaxSize - 1);
     }
 
     @Override
     public void undo() {
-        table.get(undo.peek()).undo();
-        redo.push(undo.pop());
+        if (!insertedUndo.empty()) {
+            insertedUndo.peek().undo();
+            insertedRedo.push(insertedUndo.pop());
+        } else {
+            if (!undo.empty()) {
+                table.get(undo.peek()).undo();
+                redo.push(undo.pop());
+            }
+        }
     }
 
     @Override
     public void redo() {
-        table.get(redo.peek()).redo();
-        undo.push(redo.pop());
+        if (!insertedRedo.empty()) {
+            insertedRedo.peek().redo();
+            insertedUndo.push(insertedRedo.pop());
+        } else {
+            if (!redo.empty()) {
+                table.get(redo.peek()).redo();
+                undo.push(redo.pop());
+            }
+        }
+    }
+
+    private void tryParentUndo(V value) {
+        if (value instanceof PersistentHashMap) {
+            ((PersistentHashMap) value).parent = this;
+        }
+
+        if (parent != null) {
+            parent.onEvent(this);
+        }
+    }
+
+    private void onEvent(PersistentHashMap<?, ?> persistentHashMap) {
+        insertedUndo.push(persistentHashMap);
     }
 
     static class Pair<K, V> implements Map.Entry<K, V> {
