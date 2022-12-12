@@ -2,7 +2,15 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
+import java.util.Stack;
 
 public class PersistentArray<E> extends AbstractPersistentCollection<E> implements List<E> {
 
@@ -124,11 +132,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return result;
     }
 
-    private String debugInfo(HeadArray<E> head) {
-        return "size: " + size(head) + "; unique leafs: "
-                + calcUniqueLeafs() + "; array: " + toString(head);
-    }
-
     @Override
     public String toString() {
         return toString(getCurrentHead());
@@ -209,7 +212,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         undo.push(newHead);
         redo.clear();
         Node<E> currentNode = newHead.root;
-
         while (level > 0) {
             int widthIndex = (index >> level) & mask;
             int widthIndexNext = (index >> (level - bitPerNode)) & mask;
@@ -228,7 +230,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         if (isFull()) {
             throw new IllegalStateException("array is full");
         }
-
         HeadArray<E> newHead = new HeadArray<>(head, 0);
         undo.push(newHead);
         redo.clear();
@@ -479,6 +480,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public E next() {
             return (E) get(index++);
         }

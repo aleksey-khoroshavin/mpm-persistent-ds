@@ -4,9 +4,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-public class PersistentLinkedListTest {
+class PersistentLinkedListTest {
     PersistentLinkedList<Integer> persistentLinkedList;
 
     private void init(int fillSize) {
@@ -14,24 +17,18 @@ public class PersistentLinkedListTest {
         fill(fillSize);
     }
 
-    private void init(int fillSize, int maxSize) {
-        persistentLinkedList = new PersistentLinkedList<>(maxSize);
-        fill(fillSize);
-    }
-
-    private void init(int fillSize, int depth, int bitPerNode) {
-        persistentLinkedList = new PersistentLinkedList<>(depth, bitPerNode);
+    private void init(int fillSize, int depth, int bit_na_pu) {
+        persistentLinkedList = new PersistentLinkedList<>(depth, bit_na_pu);
         fill(fillSize);
     }
 
     private void fill(int size) {
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++)
             persistentLinkedList.add(i);
-        }
     }
 
     @Test
-    public void add() {
+    void add() {
         init(0);
 
         persistentLinkedList.add(3);
@@ -76,7 +73,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void insertMemCopy() {
+    void insertMemCopy() {
         init(0);
         persistentLinkedList.add(3);
         persistentLinkedList.add(4);
@@ -100,7 +97,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void insert() {
+    void insert() {
         init(0);
         persistentLinkedList.add(3);
         persistentLinkedList.add(4);
@@ -138,7 +135,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void insertIntoBeginAndEnd() {
+    void insertIntoBeginAndEnd() {
         init(0, 3, 1);
         persistentLinkedList.add(1);
         persistentLinkedList.add(2);
@@ -170,7 +167,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void testPersistentLinkedListIterator() {
+    void testPersistentLinkedListIterator() {
         init(3);
         Iterator<Integer> i = persistentLinkedList.iterator();
         assertTrue(i.hasNext());
@@ -205,7 +202,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void testPersistentLinkedListRemove() {
+    void testPersistentLinkedListRemove() {
         init(3);
         assertEquals("[0, 1, 2]", persistentLinkedList.toString());
         persistentLinkedList.remove(0);
@@ -225,7 +222,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void testPersistentLinkedListSet() {
+    void testPersistentLinkedListSet() {
         init(3);
         assertEquals("[0, 1, 2]", persistentLinkedList.toString());
         persistentLinkedList.set(1, -1);
@@ -242,7 +239,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void testPersistentLinkedListRemoveLastElement() {
+    void testPersistentLinkedListRemoveLastElement() {
         init(2);
         assertEquals("[0, 1]", persistentLinkedList.toString());
         persistentLinkedList.remove(1);
@@ -252,7 +249,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void testPersistentLinkedListRemoveMiddleElement() {
+    void testPersistentLinkedListRemoveMiddleElement() {
         init(3);
         assertEquals("[0, 1, 2]", persistentLinkedList.toString());
         persistentLinkedList.remove(1);
@@ -264,7 +261,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void testPersistentLinkedListUndoRedo() {
+    void testPersistentLinkedListUndoRedo() {
         init(3);
         assertEquals("[0, 1, 2]", persistentLinkedList.toString());
 
@@ -291,7 +288,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void testPersistentLinkedListRemoveAllElementsAndUndoRedo() {
+    void testPersistentLinkedListRemoveAllElementsAndUndoRedo() {
         init(3);
         assertEquals("[0, 1, 2]", persistentLinkedList.toString());
         persistentLinkedList.remove(0);
@@ -328,7 +325,7 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void testPersistentLinkedListForEach() {
+    void testPersistentLinkedListForEach() {
         init(3);
         StringBuilder stringBuilder = new StringBuilder();
         for (Integer i : persistentLinkedList) {
@@ -337,13 +334,13 @@ public class PersistentLinkedListTest {
 
         assertEquals("012", stringBuilder.toString());
 
-        PersistentLinkedList<PersistentHashMap.Pair<String, Integer>> persistentLinkedList2 = new PersistentLinkedList<>();
-        persistentLinkedList2.add(new PersistentHashMap.Pair<>("Str1", 1));
-        persistentLinkedList2.add(new PersistentHashMap.Pair<>("Str2", 2));
-        persistentLinkedList2.add(new PersistentHashMap.Pair<>("Str3", 3));
+        PersistentLinkedList<PersistentHashMap.Pair<String, Integer>> pl2 = new PersistentLinkedList<>();
+        pl2.add(new PersistentHashMap.Pair<>("Test_str_1", 1));
+        pl2.add(new PersistentHashMap.Pair<>("Test_str_2", 2));
+        pl2.add(new PersistentHashMap.Pair<>("Test_str_3", 3));
 
         stringBuilder = new StringBuilder();
-        for (PersistentHashMap.Pair<String, Integer> pair : persistentLinkedList2) {
+        for (PersistentHashMap.Pair<String, Integer> pair : pl2) {
             stringBuilder.append("[");
             stringBuilder.append(pair.getKey());
             stringBuilder.append(" ");
@@ -351,11 +348,11 @@ public class PersistentLinkedListTest {
             stringBuilder.append("]");
         }
 
-        assertEquals("[Str1 1][Str2 2][Str3 3]", stringBuilder.toString());
+        assertEquals("[Test_str_1 1][Test_str_2 2][Test_str_3 3]", stringBuilder.toString());
     }
 
     @Test
-    public void testPersistentLinkedListClear() {
+    void testPersistentLinkedListClear() {
         init(3);
         assertEquals("[0, 1, 2]", persistentLinkedList.toString());
         assertEquals(3, persistentLinkedList.size());
@@ -380,26 +377,83 @@ public class PersistentLinkedListTest {
     }
 
     @Test
-    public void testPersistentLinkedListCascade() {
-        PersistentLinkedList<String> version1 = new PersistentLinkedList<>();
-        version1.add("Str1");
+    void testPersistentLinkedListCascade() {
+        PersistentLinkedList<String> v1 = new PersistentLinkedList<>();
+        v1.add("Test_str_1");
 
-        PersistentLinkedList<String> version2 = version1.conj("Str2");
+        PersistentLinkedList<String> v2 = v1.conj("Test_str_2");
 
-        assertEquals("[Str1]", version1.toString());
-        assertEquals("[Str1, Str2]", version2.toString());
+        assertEquals("[Test_str_1]", v1.toString());
+        assertEquals("[Test_str_1, Test_str_2]", v2.toString());
 
-        PersistentLinkedList<String> version3 = version2.assoc(0, "Str3");
+        PersistentLinkedList<String> v3 = v2.assoc(0, "Test_str_3");
 
-        assertEquals("[Str1]", version1.toString());
-        assertEquals("[Str1, Str2]", version2.toString());
-        assertEquals("[Str3, Str2]", version3.toString());
+        assertEquals("[Test_str_1]", v1.toString());
+        assertEquals("[Test_str_1, Test_str_2]", v2.toString());
+        assertEquals("[Test_str_3, Test_str_2]", v3.toString());
 
-        version3.add("3");
-        version3.add("4");
-        assertEquals("[Str3, Str2, 3, 4]", version3.toString());
+        v3.add("3");
+        v3.add("4");
+        assertEquals("[Test_str_3, Test_str_2, 3, 4]", v3.toString());
 
-        version3.remove(2);
-        assertEquals("[Str3, Str2, 4]", version3.toString());
+        v3.remove(2);
+        assertEquals("[Test_str_3, Test_str_2, 4]", v3.toString());
+    }
+
+    @Test
+    void testPersistentLinkedListInsertedUndoRedo() {
+        PersistentLinkedList<PersistentLinkedList<String>> parent = new PersistentLinkedList<>();
+        PersistentLinkedList<String> child1 = new PersistentLinkedList<>();
+        PersistentLinkedList<String> child2 = new PersistentLinkedList<>();
+        PersistentLinkedList<String> child3 = new PersistentLinkedList<>();
+        parent.add(child1);
+        parent.add(child2);
+        parent.add(child3);
+
+        parent.get(0).add("1");
+        parent.get(0).add("2");
+        parent.get(0).add("3");
+
+        parent.get(1).add("11");
+        parent.get(1).add("22");
+        parent.get(1).add("33");
+
+        parent.get(2).add("111");
+        parent.get(2).add("222");
+        parent.get(2).add("333");
+
+        assertEquals("[[1, 2, 3], [11, 22, 33], [111, 222, 333]]", parent.toString());
+        parent.undo();
+    }
+
+    @Test
+    void testPersistentLinkedListMemoryReuse() {
+        PersistentLinkedList<Integer> linkedList = new PersistentLinkedList<>(4, 1);
+
+        linkedList.add(3);
+        linkedList.add(4);
+        linkedList.add(5);
+        assertEquals("[3, 4, 5]", linkedList.toString());
+        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+
+        linkedList.remove(1);
+        assertEquals("[3, 5]", linkedList.toString());
+        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+
+        linkedList.add(6);
+        assertEquals("[3, 5, 6]", linkedList.toString());
+        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+
+        linkedList.undo();
+        assertEquals("[3, 5]", linkedList.toString());
+        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+
+        linkedList.add(7);
+        assertEquals("[3, 5, 7]", linkedList.toString());
+        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+
+        linkedList.add(8);
+        assertEquals("[3, 5, 7, 8]", linkedList.toString());
+        assertEquals(4, linkedList.getCurrentHead().sizeTree);
     }
 }
