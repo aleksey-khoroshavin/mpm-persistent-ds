@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class PersistentHashMapTest {
     PersistentHashMap<String, Integer> persistentHashMap = new PersistentHashMap<>();
 
-    private void addABC() {
+    private void fillWithABCData() {
         persistentHashMap.put("A", 1);
         persistentHashMap.put("B", 2);
         persistentHashMap.put("C", 3);
@@ -20,7 +20,7 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapPutAndGet() {
-        addABC();
+        fillWithABCData();
         assertEquals(Integer.valueOf(1), persistentHashMap.get("A"));
         assertEquals(Integer.valueOf(2), persistentHashMap.get("B"));
         assertEquals(Integer.valueOf(3), persistentHashMap.get("C"));
@@ -28,13 +28,13 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapValues() {
-        addABC();
+        fillWithABCData();
         assertEquals("[1, 2, 3]", persistentHashMap.values().toString());
     }
 
     @Test
     void testPersistentHashMapKeySet() {
-        addABC();
+        fillWithABCData();
 
         HashSet<String> hs = new HashSet<>();
         hs.add("A");
@@ -46,7 +46,7 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapForEach() {
-        addABC();
+        fillWithABCData();
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("[");
         for (Map.Entry<String, Integer> entry : persistentHashMap.entrySet()) {
@@ -62,7 +62,7 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapUndoRedo() {
-        addABC();
+        fillWithABCData();
 
         persistentHashMap.undo();
         assertEquals(Integer.valueOf(1), persistentHashMap.get("A"));
@@ -95,7 +95,7 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapContainsKey() {
-        addABC();
+        fillWithABCData();
 
         assertEquals(3, persistentHashMap.size());
 
@@ -110,7 +110,7 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapContainsValue() {
-        addABC();
+        fillWithABCData();
 
         assertEquals(3, persistentHashMap.size());
 
@@ -125,7 +125,7 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapAPIForEach() {
-        addABC();
+        fillWithABCData();
         StringBuilder stringBuilder = new StringBuilder();
         stringBuilder.append("[");
         persistentHashMap.forEach((k, v) -> stringBuilder.append(k).append(":").append(v).append(" "));
@@ -139,15 +139,14 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapClear() {
-        addABC();
+        fillWithABCData();
         assertEquals(3, persistentHashMap.size());
         persistentHashMap.clear();
-        assertEquals(0, persistentHashMap.size());
     }
 
     @Test
     void testPersistentHashMapRemove() {
-        addABC();
+        fillWithABCData();
 
         assertEquals(3, persistentHashMap.size());
         assertEquals(Integer.valueOf(1), persistentHashMap.get("A"));
@@ -165,22 +164,22 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapModifyAndUndoRedo() {
-        persistentHashMap.put("key", 12);
+        persistentHashMap.put("Test_str_1", 12);
         assertEquals(1, persistentHashMap.size());
-        assertEquals(Integer.valueOf(12), persistentHashMap.get("key"));
+        assertEquals(Integer.valueOf(12), persistentHashMap.get("Test_str_1"));
 
-        persistentHashMap.put("key", 1000);
+        persistentHashMap.put("Test_str_1", 1000);
         assertEquals(1, persistentHashMap.size());
-        assertEquals(Integer.valueOf(1000), persistentHashMap.get("key"));
+        assertEquals(Integer.valueOf(1000), persistentHashMap.get("Test_str_1"));
 
         persistentHashMap.undo();
         assertEquals(1, persistentHashMap.size());
-        assertEquals(Integer.valueOf(12), persistentHashMap.get("key"));
+        assertEquals(Integer.valueOf(12), persistentHashMap.get("Test_str_1"));
     }
 
     @Test
     void testPersistentHashMapToString() {
-        addABC();
+        fillWithABCData();
         assertTrue(persistentHashMap.toString().contains("A=1"));
         assertTrue(persistentHashMap.toString().contains("B=2"));
         assertTrue(persistentHashMap.toString().contains("C=3"));
@@ -189,38 +188,39 @@ class PersistentHashMapTest {
 
     @Test
     void testPersistentHashMapCascade() {
-        PersistentHashMap<String, Integer> version1 = new PersistentHashMap<>();
-        version1.put("key1", 1);
-        PersistentHashMap<String, Integer> version2 = version1.conj("key2", 2);
+        PersistentHashMap<String, Integer> v1 = new PersistentHashMap<>();
+        v1.put("Test_str_1", 1);
+        PersistentHashMap<String, Integer> v2 = v1.conj("Test_str_2", 2);
 
-        assertEquals(Integer.valueOf(1), version1.get("key1"));
-        assertFalse(version1.containsKey("key2"));
-        assertEquals(1, version1.size());
+        assertEquals(Integer.valueOf(1), v1.get("Test_str_1"));
+        assertFalse(v1.containsKey("Test_str_2"));
+        assertEquals(1, v1.size());
 
-        assertEquals(Integer.valueOf(1), version2.get("key1"));
-        assertEquals(Integer.valueOf(2), version2.get("key2"));
-        assertEquals(2, version2.size());
+        assertEquals(Integer.valueOf(1), v2.get("Test_str_1"));
+        assertEquals(Integer.valueOf(2), v2.get("Test_str_2"));
+        assertEquals(2, v2.size());
 
-        PersistentHashMap<String, Integer> version3 = version2.conj("key1", 999);
+        //assoc
+        PersistentHashMap<String, Integer> v3 = v2.conj("Test_str_1", 999);
 
-        assertEquals(Integer.valueOf(1), version1.get("key1"));
-        assertFalse(version1.containsKey("key2"));
-        assertEquals(1, version1.size());
+        assertEquals(Integer.valueOf(1), v1.get("Test_str_1"));
+        assertFalse(v1.containsKey("Test_str_2"));
+        assertEquals(1, v1.size());
 
-        assertEquals(Integer.valueOf(1), version2.get("key1"));
-        assertEquals(Integer.valueOf(2), version2.get("key2"));
-        assertEquals(2, version2.size());
+        assertEquals(Integer.valueOf(1), v2.get("Test_str_1"));
+        assertEquals(Integer.valueOf(2), v2.get("Test_str_2"));
+        assertEquals(2, v2.size());
 
-        assertEquals(Integer.valueOf(999), version3.get("key1"));
-        assertEquals(Integer.valueOf(2), version3.get("key2"));
-        assertEquals(2, version3.size());
+        assertEquals(Integer.valueOf(999), v3.get("Test_str_1"));
+        assertEquals(Integer.valueOf(2), v3.get("Test_str_2"));
+        assertEquals(2, v3.size());
 
-        version3.put("key3", 3);
-        version3.put("key4", 4);
-        assertEquals(4, version3.size());
+        v3.put("Test_str_3", 3);
+        v3.put("Test_str_4", 4);
+        assertEquals(4, v3.size());
 
-        version3.remove("key3");
-        assertFalse(version3.containsKey("key3"));
-        assertEquals(3, version3.size());
+        v3.remove("Test_str_3");
+        assertFalse(v3.containsKey("Test_str_3"));
+        assertEquals(3, v3.size());
     }
 }

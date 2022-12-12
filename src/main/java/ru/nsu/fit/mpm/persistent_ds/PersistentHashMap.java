@@ -17,6 +17,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     private Stack<Integer> redo = new Stack<>();
     private Stack<Integer> undo = new Stack<>();
     private PersistentHashMap<?, PersistentHashMap<?, ?>> parent;
+    private int countInsertedHM = 0;
     private Stack<PersistentHashMap<?, ?>> insertedUndo = new Stack<>();
     private Stack<PersistentHashMap<?, ?>> insertedRedo = new Stack<>();
 
@@ -63,6 +64,9 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
             if (pair.getKey().equals(key)) {
                 V value = pair.getValue();
                 table.get(index).remove(i);
+                undo.push(index);
+                redo.clear();
+                tryParentUndo((V) this);
                 return value;
             }
         }
@@ -155,32 +159,64 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     @Override
     public void undo() {
         if (!insertedUndo.empty()) {
-            insertedUndo.peek().undo();
-            insertedRedo.push(insertedUndo.pop());
-        } else {
-            if (!undo.empty()) {
-                table.get(undo.peek()).undo();
-                redo.push(undo.pop());
+            if (insertedUndo.peek().isEmpty()) {
+                insertedRedo.push(insertedUndo.pop()); //?
+                standardUndo();
+            } else {
+                PersistentHashMap persistentHashMap = insertedUndo.pop();
+                persistentHashMap.undo();
+                insertedRedo.push(persistentHashMap);
             }
+        } else {
+            standardUndo();
         }
     }
 
     @Override
     public void redo() {
         if (!insertedRedo.empty()) {
-            insertedRedo.peek().redo();
-            insertedUndo.push(insertedRedo.pop());
-        } else {
-            if (!redo.empty()) {
-                table.get(redo.peek()).redo();
-                undo.push(redo.pop());
+            if (insertedRedo.peek().isEmpty()) {
+                if (insertedRedo.peek().parent.size() == countInsertedHM) {
+                    standardInsertedRedo();
+                } else {
+                    insertedUndo.push(insertedRedo.pop());
+                    standardRedo();
+                }
+            } else {
+                standardInsertedRedo();
             }
+        } else {
+            standardRedo();
+        }
+    }
+
+    private void standardInsertedRedo() {
+        PersistentHashMap persistentHashMap = insertedRedo.pop();
+        persistentHashMap.redo();
+        insertedUndo.push(persistentHashMap);
+    }
+
+    private void standardRedo() {
+        if (!redo.empty()) {
+            table.get(redo.peek()).redo();
+            undo.push(redo.pop());
+        }
+    }
+
+    private void standardUndo() {
+        if (!undo.empty()) {
+            table.get(undo.peek()).undo();
+            redo.push(undo.pop());
         }
     }
 
     private void tryParentUndo(V value) {
         if (value instanceof PersistentHashMap) {
+            countInsertedHM++;
             ((PersistentHashMap) value).parent = this;
+            onEvent((PersistentHashMap) value);
+            redo.clear();
+            insertedRedo.clear();
         }
 
         if (parent != null) {

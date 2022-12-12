@@ -2,7 +2,15 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Stack;
 
 public class PersistentLinkedList<E> extends AbstractPersistentCollection<PersistentLinkedListElement<E>> implements List<E> {
 
@@ -11,6 +19,7 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
     private Stack<PersistentLinkedList<?>> insertedRedo = new Stack<>();
     protected final Stack<HeadList<PersistentLinkedListElement<E>>> redo = new Stack<>();
     protected final Stack<HeadList<PersistentLinkedListElement<E>>> undo = new Stack<>();
+
 
     public PersistentLinkedList() {
         this(6, 5);
@@ -21,7 +30,9 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
     }
 
     public PersistentLinkedList(int depth, int bitPerNode) {
+
         super(depth, bitPerNode);
+
         HeadList<PersistentLinkedListElement<E>> head = new HeadList<>();
         undo.push(head);
         redo.clear();
@@ -205,12 +216,10 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
             return false;
         }
 
-        PersistentLinkedListElement<E> element = null;
-
+        PersistentLinkedListElement<E> element;
         HeadList<PersistentLinkedListElement<E>> prevHead = getCurrentHead();
-        HeadList<PersistentLinkedListElement<E>> newHead = null;
-
-        Pair<Integer, Boolean> next = null;
+        HeadList<PersistentLinkedListElement<E>> newHead;
+        Pair<Integer, Boolean> next;
 
         if (getCurrentHead().size == 0) {
             newHead = new HeadList<>();
@@ -455,7 +464,6 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
 
     protected Pair<Node<PersistentLinkedListElement<E>>, Integer> getLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
         checkTreeIndex(index, head);
-
         int level = bitPerLevel - bitPerNode;
         Node<PersistentLinkedListElement<E>> node = head.root;
 
@@ -495,15 +503,6 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
 
     public int getVersionCount() {
         return undo.size() + redo.size();
-    }
-
-    public String drawGraph() {
-        return drawGraph(true);
-    }
-
-    public String drawGraph(boolean printAllData) {
-        return (printAllData ? (toString() + "\nunique:" + getUniqueLeafsSize() + "; ver:" + getVersionCount() + "\n") : "")
-                + getCurrentHead() + "\n" + getCurrentHead().root.drawGraph() + "\n";
     }
 
     public PersistentLinkedList<E> assoc(int index, E element) {
@@ -687,6 +686,7 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         }
 
         @Override
+        @SuppressWarnings("unchecked")
         public E2 next() {
             E2 result = (E2) current.value;
             i++;
