@@ -378,4 +378,28 @@ public class PersistentLinkedListTest {
         assertEquals("[1, 2, 3]", persistentLinkedList.toString());
         assertEquals(3, persistentLinkedList.size());
     }
+
+    @Test
+    public void testPersistentLinkedListCascade() {
+        PersistentLinkedList<String> version1 = new PersistentLinkedList<>();
+        version1.add("Str1");
+
+        PersistentLinkedList<String> version2 = version1.conj("Str2");
+
+        assertEquals("[Str1]", version1.toString());
+        assertEquals("[Str1, Str2]", version2.toString());
+
+        PersistentLinkedList<String> version3 = version2.assoc(0, "Str3");
+
+        assertEquals("[Str1]", version1.toString());
+        assertEquals("[Str1, Str2]", version2.toString());
+        assertEquals("[Str3, Str2]", version3.toString());
+
+        version3.add("3");
+        version3.add("4");
+        assertEquals("[Str3, Str2, 3, 4]", version3.toString());
+
+        version3.remove(2);
+        assertEquals("[Str3, Str2, 4]", version3.toString());
+    }
 }
