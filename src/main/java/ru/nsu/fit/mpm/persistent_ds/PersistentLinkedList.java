@@ -2,15 +2,7 @@ package ru.nsu.fit.mpm.persistent_ds;
 
 import javafx.util.Pair;
 
-import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Stack;
+import java.util.*;
 
 public class PersistentLinkedList<E> extends AbstractPersistentCollection<PersistentLinkedListElement<E>> implements List<E> {
 
@@ -19,7 +11,6 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
     private Stack<PersistentLinkedList<?>> insertedRedo = new Stack<>();
     protected final Stack<HeadList<PersistentLinkedListElement<E>>> redo = new Stack<>();
     protected final Stack<HeadList<PersistentLinkedListElement<E>>> undo = new Stack<>();
-
 
     public PersistentLinkedList() {
         this(6, 5);
@@ -43,7 +34,6 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         this.undo.addAll(other.undo);
         this.redo.addAll(other.redo);
     }
-
 
     public void undo() {
         if (!insertedUndo.empty()) {
@@ -362,29 +352,26 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         head.sizeTree += 1;
 
         Node<PersistentLinkedListElement<E>> currentNode = head.root;
-        int level = bitPerNode * (depth - 1);
+        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
+            int widthIndex = ((head.sizeTree - 1) >> level) & mask;
 
-        while (level > 0) {
-            int index = ((head.sizeTree - 1) >> level) & mask;
             Node<PersistentLinkedListElement<E>> tmp, newNode;
-
             if (currentNode.child == null) {
                 currentNode.child = new LinkedList<>();
                 newNode = new Node<>();
                 currentNode.child.add(newNode);
             } else {
-                if (index == currentNode.child.size()) {
+                if (widthIndex == currentNode.child.size()) {
                     newNode = new Node<>();
                     currentNode.child.add(newNode);
                 } else {
-                    tmp = currentNode.child.get(index);
+                    tmp = currentNode.child.get(widthIndex);
                     newNode = new Node<>(tmp);
-                    currentNode.child.set(index, newNode);
+                    currentNode.child.set(widthIndex, newNode);
                 }
             }
 
             currentNode = newNode;
-            level -= bitPerNode;
         }
 
         if (currentNode.value == null) {
@@ -464,13 +451,11 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
 
     protected Pair<Node<PersistentLinkedListElement<E>>, Integer> getLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
         checkTreeIndex(index, head);
-        int level = bitPerLevel - bitPerNode;
-        Node<PersistentLinkedListElement<E>> node = head.root;
 
-        while (level > 0) {
-            int tempIndex = (index >> level) & mask;
-            node = node.child.get(tempIndex);
-            level -= bitPerNode;
+        Node<PersistentLinkedListElement<E>> node = head.root;
+        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
+            int widthIndex = (index >> level) & mask;
+            node = node.child.get(widthIndex);
         }
 
         return new Pair<>(node, index & mask);
@@ -484,18 +469,13 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
 
         HeadList<PersistentLinkedListElement<E>> newHead = new HeadList<>(head, 0);
         Node<PersistentLinkedListElement<E>> currentNode = newHead.root;
-        int level = bitPerNode * (depth - 1);
-
-        while (level > 0) {
+        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
             int widthIndex = (index >> level) & mask;
             Node<PersistentLinkedListElement<E>> tmp, newNode;
-
             tmp = currentNode.child.get(widthIndex);
             newNode = new Node<>(tmp);
             currentNode.child.set(widthIndex, newNode);
-
             currentNode = newNode;
-            level -= bitPerNode;
         }
 
         return new CopyResult<>(currentNode, index & mask, newHead);

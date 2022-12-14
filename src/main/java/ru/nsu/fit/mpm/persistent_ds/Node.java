@@ -13,14 +13,16 @@ public class Node<E> {
     }
 
     public Node(Node<E> other) {
-        if (other.child != null) {
-            child = new ArrayList<>();
-            child.addAll(other.child);
-        }
+        if (other != null) {
+            if (other.child != null) {
+                child = new ArrayList<>();
+                child.addAll(other.child);
+            }
 
-        if (other.value != null) {
-            value = new ArrayList<>();
-            value.addAll(other.value);
+            if (other.value != null) {
+                value = new ArrayList<>();
+                value.addAll(other.value);
+            }
         }
     }
 
@@ -86,7 +88,9 @@ public class Node<E> {
             result.append(drawTab(level)).append(hash).append("\n");
 
             for (Node<E> n : node.child) {
-                result.append(drawGraph(n, level + 1));
+                if (n != null) {
+                    result.append(drawGraph(n, level + 1));
+                }
             }
         }
         return result.toString();
