@@ -4,7 +4,22 @@ import javafx.util.Pair;
 
 import java.util.*;
 
+/**
+ * Персистентный массив
+ *
+ * @param <E>
+ */
 public class PersistentArray<E> extends AbstractPersistentCollection<E> implements List<E> {
+
+    private static final String EMPTY_ARRAY_MESSAGE = "Array is empty";
+    private static final String FULL_ARRAY_MESSAGE = "Array is full";
+    private static final String INVALID_INDEX_MESSAGE = "Invalid index";
+
+    private PersistentArray<PersistentArray<?>> parent;
+    private final Stack<PersistentArray<?>> insertedUndo = new Stack<>();
+    private final Stack<PersistentArray<?>> insertedRedo = new Stack<>();
+    protected final Stack<HeadArray<E>> redo = new Stack<>();
+    protected final Stack<HeadArray<E>> undo = new Stack<>();
 
     public PersistentArray() {
         this(6, 5);
@@ -27,12 +42,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         this.redo.addAll(other.redo);
     }
 
-    private PersistentArray<PersistentArray<?>> parent;
-    private Stack<PersistentArray<?>> insertedUndo = new Stack<>();
-    private Stack<PersistentArray<?>> insertedRedo = new Stack<>();
-    protected final Stack<HeadArray<E>> redo = new Stack<>();
-    protected final Stack<HeadArray<E>> undo = new Stack<>();
-
+    @Override
     public void undo() {
         if (!insertedUndo.empty()) {
             insertedUndo.peek().undo();
@@ -44,6 +54,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         }
     }
 
+    @Override
     public void redo() {
         if (!insertedRedo.empty()) {
             insertedRedo.peek().redo();
@@ -55,45 +66,223 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         }
     }
 
+    private void tryParentUndo(E value) {
+        if (value instanceof PersistentArray) {
+            ((PersistentArray) value).parent = this;
+        }
+        if (parent != null) {
+            parent.insertedUndo.push(this);
+        }
+    }
+
+    /**
+     * Возвращает количество элементов в массиве.
+     *
+     * @return количество элементов в массиве
+     */
+    @Override
+    public int size() {
+        return size(getCurrentHead());
+    }
+
+    private int size(HeadArray<E> head) {
+        return head.size;
+    }
+
+    protected HeadArray<E> getCurrentHead() {
+        return this.undo.peek();
+    }
+
+    private void checkIndex(int index) {
+        checkIndex(getCurrentHead(), index);
+    }
+
+    private void checkIndex(HeadArray<E> head, int index) {
+        if ((index < 0) || (index >= head.size)) {
+            throw new IndexOutOfBoundsException(INVALID_INDEX_MESSAGE);
+        }
+    }
+
+    /**
+     * Возвращает true, если список полон (size == maxSize).
+     *
+     * @return true, если список полон
+     */
+    public boolean isFull() {
+        return isFull(getCurrentHead());
+    }
+
+    private boolean isFull(HeadArray<E> head) {
+        return head.size >= maxSize;
+    }
+
+    /**
+     * Возвращает true, если массив не содержит элементов.
+     *
+     * @return true, если массив не содержит элементов
+     */
+    @Override
+    public boolean isEmpty() {
+        return getCurrentHead().size <= 0;
+    }
+
+    /**
+     * Возвращает количество версий массива.
+     *
+     * @return количество версий массива
+     */
     public int getVersionCount() {
         return undo.size() + redo.size();
     }
 
-    public int calcUniqueLeafs() {
-        LinkedList<Node<E>> list = new LinkedList<>();
-        calcUniqueLeafs(list, undo);
-        calcUniqueLeafs(list, redo);
+    /**
+     * Заменяет элемент в указанной позиции этого массива указанным элементом.
+     *
+     * @param index   индекс замняемого элемента
+     * @param element элемент, который будет сохранен в указанной позиции
+     * @return заменяемый элемент
+     */
+    @Override
+    public E set(int index, E element) {
+        checkIndex(index);
 
-        return list.size();
+        E result = get(index);
+
+        Pair<Node<E>, Integer> copedNodeP = copyLeafToChange(getCurrentHead(), index);
+        int leafIndex = copedNodeP.getValue();
+        Node<E> copedNode = copedNodeP.getKey();
+        copedNode.value.set(leafIndex, element);
+
+        tryParentUndo(element);
+
+        return result;
     }
 
-    private void calcUniqueLeafs(LinkedList<Node<E>> list, Stack<HeadArray<E>> undo1) {
-        for (HeadArray<E> head : undo1) {
-            for (int i = 0; i < head.size; i++) {
-                Node<E> leaf = getLeaf(head, i);
-                if (!list.contains(leaf))
-                    list.add(leaf);
-            }
-        }
+    /**
+     * Возвращает копию массива, в которой заменяет элемент в указанной позиции указанным элементом.
+     *
+     * @param index   индекс замняемого элемента
+     * @param element элемент, который будет сохранен в указанной позиции
+     * @return измененная копия массива
+     */
+    public PersistentArray<E> assoc(int index, E element) {
+        PersistentArray<E> result = new PersistentArray<>(this);
+        result.set(index, element);
+        return result;
     }
 
-    protected Node<E> getLeaf(HeadArray<E> head, int index) {
-        if (index >= head.size) {
-            throw new IndexOutOfBoundsException();
+    /**
+     * Добавление нового элмента в конец массива.
+     *
+     * @param element добавляемый элемент
+     * @return true если массив изменился в результате вызова
+     */
+    @Override
+    public boolean add(E element) {
+        if (isFull()) {
+            throw new IllegalStateException(FULL_ARRAY_MESSAGE);
         }
 
-        Node<E> node = head.root;
+        HeadArray<E> newHead = new HeadArray<>(getCurrentHead(), 0);
+        undo.push(newHead);
+        redo.clear();
+        tryParentUndo(element);
+
+        return add(newHead, element);
+    }
+
+    /**
+     * Возвращает копию массива, в конец которой добавлен указанный элемент.
+     *
+     * @param element добавляемый элемент
+     * @return измененная копия массива
+     */
+    public PersistentArray<E> conj(E element) {
+        PersistentArray<E> result = new PersistentArray<>(this);
+        result.add(element);
+        return result;
+    }
+
+    /**
+     * Добавление нового элмента по идексу.
+     * <p>
+     * Вставляет указанный элемент в указанную позицию в этом массиве (дополнительная операция).
+     * Сдвигает элемент, находящийся в данный момент в этой позиции (если есть),
+     * и любые последующие элементы вправо (добавляет единицу к их индексам).
+     * </p>
+     *
+     * @param index   индекс, по которому указанный элемент должен быть вставлен
+     * @param element элемент, который нужно вставить
+     */
+    @Override
+    public void add(int index, E element) {
+        checkIndex(index);
+        if (isFull()) {
+            throw new IllegalStateException(FULL_ARRAY_MESSAGE);
+        }
+
+        HeadArray<E> oldHead = getCurrentHead();
+
+        Pair<Node<E>, Integer> copedNodeP = copyLeafToMove(oldHead, index);
+        int leafIndex = copedNodeP.getValue();
+        Node<E> copedNode = copedNodeP.getKey();
+        copedNode.value.set(leafIndex, element);
+
+        HeadArray<E> newHead = getCurrentHead();
+        for (int i = index; i < oldHead.size; i++) {
+            add(newHead, get(oldHead, i));
+        }
+        tryParentUndo(element);
+    }
+
+    private boolean add(HeadArray<E> head, E newElement) {
+        add(head).value.add(newElement);
+
+        return true;
+    }
+
+    private Node<E> add(HeadArray<E> head) {
+        if (isFull(head)) {
+            throw new IllegalStateException(FULL_ARRAY_MESSAGE);
+        }
+
+        head.size += 1;
+        Node<E> currentNode = head.root;
         for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
-            int widthIndex = (index >> level) & mask;
-            node = node.child.get(widthIndex);
+            int widthIndex = ((head.size - 1) >> level) & mask;
+            Node<E> tmp, newNode;
+
+            if (currentNode.child == null) {
+                currentNode.child = new LinkedList<>();
+                newNode = new Node<>();
+                currentNode.child.add(newNode);
+            } else {
+                if (widthIndex == currentNode.child.size()) {
+                    newNode = new Node<>();
+                    currentNode.child.add(newNode);
+                } else {
+                    tmp = currentNode.child.get(widthIndex);
+                    newNode = new Node<>(tmp);
+                    currentNode.child.set(widthIndex, newNode);
+                }
+            }
+            currentNode = newNode;
         }
 
-        return node;
+        if (currentNode.value == null) {
+            currentNode.value = new ArrayList<>();
+        }
+        return currentNode;
     }
 
-    public E pop() throws NoSuchElementException {
-        if (getCurrentHead().size == 0) {
-            throw new NoSuchElementException("Array is empty");
+    /**
+     * Удаляет последний элемент массива.
+     *
+     * @return последний элемент массива
+     */
+    public E pop() {
+        if (isEmpty()) {
+            throw new NoSuchElementException(EMPTY_ARRAY_MESSAGE);
         }
 
         HeadArray<E> newHead = new HeadArray<>(getCurrentHead(), -1);
@@ -125,54 +314,20 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return result;
     }
 
-    @Override
-    public String toString() {
-        return toString(getCurrentHead());
-    }
-
-    private String toString(HeadArray<E> head) {
-        return Arrays.toString(toArray(head));
-    }
-
-    @Override
-    public int size() {
-        return size(getCurrentHead());
-    }
-
-    public int size(HeadArray<E> head) {
-        return head.size;
-    }
-
-    protected HeadArray<E> getCurrentHead() {
-        return this.undo.peek();
-    }
-
-    public boolean isIndexValid(int index) {
-        return isIndexValid(getCurrentHead(), index);
-    }
-
-    public boolean isIndexValid(HeadArray<E> head, int index) {
-        return (index >= 0) && (index < head.size);
-    }
-
-    public boolean isFull() {
-        return isFull(getCurrentHead());
-    }
-
-    public boolean isFull(HeadArray<E> head) {
-        return head.size >= maxSize;
-    }
-
-    @Override
-    public boolean remove(Object o) {
-        return false;
-    }
-
+    /**
+     * Удаляет элемент по указанному индексу.
+     * <p>
+     * Удаляет элемент в указанной позиции в этом массиве.
+     * Сдвигает любые последующие элементы влево (вычитает единицу из их индексов).
+     * Возвращает элемент, который был удален из массива.
+     * </p>
+     *
+     * @param index индекс удаляемого элемента
+     * @return удаленный элемент
+     */
     @Override
     public E remove(int index) {
-        if (!isIndexValid(index)) {
-            throw new IndexOutOfBoundsException();
-        }
+        checkIndex(index);
 
         E result = get(index);
 
@@ -184,24 +339,39 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
             undo.push(newHead);
             redo.clear();
         } else {
-            Pair<Node<E>, Integer> copedNodeP = copyLeafRemove(oldHead, index);
+            Pair<Node<E>, Integer> copedNodeP = copyLeafToMove(oldHead, index);
+            int leafIndex = copedNodeP.getValue();
+            Node<E> copedNode = copedNodeP.getKey();
+            copedNode.value.remove(leafIndex);
+
             newHead = getCurrentHead();
-            int ind = copedNodeP.getValue();
-            copedNodeP.getKey().value.remove(ind);
             newHead.size -= 1;
         }
 
         for (int i = index + 1; i < oldHead.size; i++) {
+            System.out.println(i);
             add(newHead, get(oldHead, i));
         }
 
         return result;
     }
 
-    private Pair<Node<E>, Integer> copyLeaf(HeadArray<E> head, int index) {
+    /**
+     * Удаляет все элементы из этого массива.
+     * Массив будет пуст после возврата этого вызова.
+     */
+    @Override
+    public void clear() {
+        HeadArray<E> head = new HeadArray<>();
+        undo.push(head);
+        redo.clear();
+    }
+
+    private Pair<Node<E>, Integer> copyLeafToChange(HeadArray<E> head, int index) {
         HeadArray<E> newHead = new HeadArray<>(head, 0);
         undo.push(newHead);
         redo.clear();
+
         Node<E> currentNode = newHead.root;
         for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
             int widthIndex = (index >> level) & mask;
@@ -211,14 +381,11 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
             currentNode.child.set(widthIndex, newNode);
             currentNode = newNode;
         }
+
         return new Pair<>(currentNode, index & mask);
     }
 
-    private Pair<Node<E>, Integer> copyLeafInsert(HeadArray<E> oldHead, int index) {
-        if (isFull(oldHead)) {
-            throw new IllegalStateException("array is full");
-        }
-
+    private Pair<Node<E>, Integer> copyLeafToMove(HeadArray<E> oldHead, int index) {
         int level = bitPerNode * (depth - 1);
         HeadArray<E> newHead = new HeadArray<>(oldHead, index + 1, (index >> level) & mask);
         undo.push(newHead);
@@ -237,147 +404,67 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return new Pair<>(currentNode, index & mask);
     }
 
-    private Pair<Node<E>, Integer> copyLeafRemove(HeadArray<E> oldHead, int index) {
-        int level = bitPerNode * (depth - 1);
-        HeadArray<E> newHead = new HeadArray<>(oldHead, index + 1, (index >> level) & mask);
-        undo.push(newHead);
-        redo.clear();
-        Node<E> currentNode = newHead.root;
-        for (; level > 0; level -= bitPerNode) {
-            int widthIndex = (index >> level) & mask;
-            int widthIndexNext = (index >> (level - bitPerNode)) & mask;
-            Node<E> tmp, newNode;
-            tmp = currentNode.child.get(widthIndex);
-            newNode = new Node<>(tmp, widthIndexNext);
-            currentNode.child.set(widthIndex, newNode);
-            currentNode = newNode;
-        }
-
-        return new Pair<>(currentNode, index & mask);
-    }
-
-    public PersistentArray<E> conj(E newElement) {
-        PersistentArray<E> result = new PersistentArray<>(this);
-        result.add(newElement);
-        return result;
-    }
-
-    @Override
-    public void add(int index, E value) {
-        if (!isIndexValid(index)) {
-            throw new IndexOutOfBoundsException();
-        }
-
-        HeadArray<E> oldHead = getCurrentHead();
-
-        Pair<Node<E>, Integer> copedNodeP = copyLeafInsert(oldHead, index);
-        HeadArray<E> newHead = getCurrentHead();
-
-        int leafIndex = copedNodeP.getValue();
-        Node<E> copedNode = copedNodeP.getKey();
-
-        copedNode.value.set(leafIndex, value);
-
-        for (int i = index; i < oldHead.size; i++) {
-            add(newHead, get(oldHead, i));
-        }
-        tryParentUndo(value);
-    }
-
-    private void tryParentUndo(E value) {
-        if (value instanceof PersistentArray) {
-            ((PersistentArray) value).parent = this;
-        }
-        if (parent != null) {
-            parent.onEvent(this);
-        }
-    }
-
-    @Override
-    public boolean add(E newElement) {
-        if (isFull()) {
-            return false;
-        }
-        HeadArray<E> newHead = new HeadArray<>(getCurrentHead(), 0);
-        undo.push(newHead);
-        redo.clear();
-        tryParentUndo(newElement);
-        return add(newHead, newElement);
-    }
-
-    private boolean add(HeadArray<E> head, E newElement) {
-        add(head).value.add(newElement);
-
-        return true;
-    }
-
-    private void onEvent(PersistentArray<?> persistentArray) {
-        insertedUndo.push(persistentArray);
-    }
-
-    private E get(HeadArray<E> head, int index) {
-        if (index >= head.size || index < 0) {
-            throw new IndexOutOfBoundsException();
-        }
-        return getLeaf(head, index).value.get(index & mask);
-    }
-
+    /**
+     * Возвращает элемент в указанной позиции в массиве.
+     *
+     * @param index индекс возвращаемого элемента
+     * @return элемент в указанной позиции в массиве
+     */
     @Override
     public E get(int index) {
         return get(getCurrentHead(), index);
     }
 
-    protected Node<E> add(HeadArray<E> head) {
-        if (isFull(head)) {
-            throw new IndexOutOfBoundsException("collection is full");
-        }
-        head.size += 1;
+    private E get(HeadArray<E> head, int index) {
+        checkIndex(head, index);
+        return getLeaf(head, index).value.get(index & mask);
+    }
 
-        Node<E> currentNode = head.root;
+    private Node<E> getLeaf(HeadArray<E> head, int index) {
+        checkIndex(head, index);
+
+        Node<E> node = head.root;
         for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
-            int widthIndex = ((head.size - 1) >> level) & mask;
-            Node<E> tmp, newNode;
-
-            if (currentNode.child == null) {
-                currentNode.child = new LinkedList<>();
-                newNode = new Node<>();
-                currentNode.child.add(newNode);
-            } else {
-                if (widthIndex == currentNode.child.size()) {
-                    newNode = new Node<>();
-                    currentNode.child.add(newNode);
-                } else {
-                    tmp = currentNode.child.get(widthIndex);
-                    newNode = new Node<>(tmp);
-                    currentNode.child.set(widthIndex, newNode);
-                }
-            }
-            currentNode = newNode;
+            int widthIndex = (index >> level) & mask;
+            node = node.child.get(widthIndex);
         }
 
-        if (currentNode.value == null) {
-            currentNode.value = new ArrayList<>();
-        }
-        return currentNode;
+        return node;
     }
 
     public String drawGraph() {
         return getCurrentHead().root.drawGraph();
     }
 
+    /**
+     * Возвращает строковое представление содержимого массива.
+     * Строковое представление состоит из списка элементов массива, заключенного в квадратные скобки («[]»).
+     * Смежные элементы разделяются символами «, » (запятая с последующим пробелом).
+     *
+     * @return строковое представление массива
+     */
     @Override
-    public boolean isEmpty() {
-        return getCurrentHead().size <= 0;
+    public String toString() {
+        return toString(getCurrentHead());
     }
 
-    @Override
-    public boolean contains(Object o) {
-        return false;
+    private String toString(HeadArray<E> head) {
+        return Arrays.toString(toArray(head));
     }
 
+    /**
+     * Возвращает массив, содержащий все элементы этого массива в правильной последовательности (от первого до последнего элемента).
+     * <p>
+     * Возвращенный массив будет "безопасным" в том смысле, что этот массив не поддерживает никаких ссылок на него.
+     * (Другими словами, этот метод должен выделять новый массив, даже если эта коллекция поддерживается массивом).
+     * Таким образом, вызывающий объект может изменять возвращаемый массив.
+     * </p>
+     *
+     * @return массив, содержащий все элементы этого массива в правильной последовательности
+     */
     @Override
-    public Iterator<E> iterator() {
-        return new PersistentArrayIterator<>();
+    public Object[] toArray() {
+        return toArray(getCurrentHead());
     }
 
     private Object[] toArray(HeadArray<E> head) {
@@ -389,17 +476,13 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
     }
 
     @Override
-    public Object[] toArray() {
-        return toArray(getCurrentHead());
+    public <T> T[] toArray(T[] a) {
+        return null;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
-    public <T> T[] toArray(T[] a) {
-        for (int i = 0; i < a.length; i++) {
-            a[i] = (T) this.get(i);
-        }
-        return a;
+    public boolean contains(Object o) {
+        return false;
     }
 
     @Override
@@ -418,6 +501,11 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
     }
 
     @Override
+    public boolean remove(Object o) {
+        return false;
+    }
+
+    @Override
     public boolean removeAll(Collection<?> c) {
         return false;
     }
@@ -426,28 +514,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
     public boolean retainAll(Collection<?> c) {
         return false;
     }
-
-    @Override
-    public void clear() {
-        HeadArray<E> head = new HeadArray<>();
-        undo.push(head);
-        redo.clear();
-    }
-
-    public PersistentArray<E> assoc(int index, E element) {
-        PersistentArray<E> result = new PersistentArray<>(this);
-        result.set(index, element);
-        return result;
-    }
-
-    @Override
-    public E set(int index, E element) {
-        Pair<Node<E>, Integer> pair = copyLeaf(getCurrentHead(), index);
-        pair.getKey().value.set(pair.getValue(), element);
-        tryParentUndo(element);
-        return get(index);
-    }
-
 
     @Override
     public int indexOf(Object o) {
@@ -474,14 +540,34 @@ public class PersistentArray<E> extends AbstractPersistentCollection<E> implemen
         return null;
     }
 
+    @Override
+    public Iterator<E> iterator() {
+        return new PersistentArrayIterator<>();
+    }
+
+    /**
+     * Итератор над персистентным массивом.
+     *
+     * @param <E>
+     */
     public class PersistentArrayIterator<E> implements java.util.Iterator<E> {
         int index = 0;
 
+        /**
+         * Возвращает true, если итерация содержит больше элементов.
+         *
+         * @return true, если итерация имеет больше элементов
+         */
         @Override
         public boolean hasNext() {
             return index < size();
         }
 
+        /**
+         * Возвращает следующий элемент в итерации.
+         *
+         * @return следующий элемент в итерации
+         */
         @Override
         @SuppressWarnings("unchecked")
         public E next() {

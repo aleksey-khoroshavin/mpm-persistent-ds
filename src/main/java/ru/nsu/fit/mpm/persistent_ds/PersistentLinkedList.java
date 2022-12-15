@@ -4,11 +4,19 @@ import javafx.util.Pair;
 
 import java.util.*;
 
+/**
+ * Персистентный двусвязный список
+ *
+ * @param <E>
+ */
 public class PersistentLinkedList<E> extends AbstractPersistentCollection<PersistentLinkedListElement<E>> implements List<E> {
 
+    private static final String FULL_LIST_MESSAGE = "List is full";
+    private static final String INVALID_INDEX_MESSAGE = "Invalid index";
+
     private PersistentLinkedList<PersistentLinkedList<?>> parent;
-    private Stack<PersistentLinkedList<?>> insertedUndo = new Stack<>();
-    private Stack<PersistentLinkedList<?>> insertedRedo = new Stack<>();
+    private final Stack<PersistentLinkedList<?>> insertedUndo = new Stack<>();
+    private final Stack<PersistentLinkedList<?>> insertedRedo = new Stack<>();
     protected final Stack<HeadList<PersistentLinkedListElement<E>>> redo = new Stack<>();
     protected final Stack<HeadList<PersistentLinkedListElement<E>>> undo = new Stack<>();
 
@@ -21,9 +29,7 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
     }
 
     public PersistentLinkedList(int depth, int bitPerNode) {
-
         super(depth, bitPerNode);
-
         HeadList<PersistentLinkedListElement<E>> head = new HeadList<>();
         undo.push(head);
         redo.clear();
@@ -35,6 +41,7 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         this.redo.addAll(other.redo);
     }
 
+    @Override
     public void undo() {
         if (!insertedUndo.empty()) {
             insertedUndo.peek().undo();
@@ -46,6 +53,7 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         }
     }
 
+    @Override
     public void redo() {
         if (!insertedRedo.empty()) {
             insertedRedo.peek().redo();
@@ -57,173 +65,164 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         }
     }
 
-    public int getUniqueLeafsSize() {
-        LinkedList<Node<PersistentLinkedListElement<E>>> list = new LinkedList<>();
-        getUniqueLeafsSize(list, undo);
-        getUniqueLeafsSize(list, redo);
-
-        return list.size();
-    }
-
-    private void getUniqueLeafsSize(LinkedList<Node<PersistentLinkedListElement<E>>> list, Stack<HeadList<PersistentLinkedListElement<E>>> undo1) {
-        for (HeadList<PersistentLinkedListElement<E>> head : undo1) {
-            for (int i = 0; i < head.size; i++) {
-                Node<PersistentLinkedListElement<E>> leaf = getLeaf(head, i).getKey();
-                if (!list.contains(leaf)) {
-                    list.add(leaf);
-                }
-            }
-        }
-
-    }
-
     private void tryParentUndo(E value) {
         if (value instanceof PersistentLinkedList) {
             ((PersistentLinkedList) value).parent = this;
         }
 
         if (parent != null) {
-            parent.onEvent(this);
+            parent.insertedUndo.push(this);
         }
     }
 
-    private void onEvent(PersistentLinkedList<?> persistentLinkedList) {
-        insertedUndo.push(persistentLinkedList);
-    }
-
-    protected HeadList<PersistentLinkedListElement<E>> getCurrentHead() {
-        return this.undo.peek();
+    /**
+     * Возвращает количество элементов в списке.
+     *
+     * @return количество элементов в списке
+     */
+    @Override
+    public int size() {
+        return size(getCurrentHead());
     }
 
     public int size(HeadList<PersistentLinkedListElement<E>> head) {
         return head.size;
     }
 
-    @Override
-    public int size() {
-        return size(getCurrentHead());
+    protected HeadList<PersistentLinkedListElement<E>> getCurrentHead() {
+        return this.undo.peek();
     }
 
+    private void checkListIndex(int index) {
+        checkListIndex(index, getCurrentHead());
+    }
+
+    private void checkListIndex(int index, HeadList<PersistentLinkedListElement<E>> head) {
+        if ((index < 0) || (index >= head.size)) {
+            throw new IndexOutOfBoundsException(INVALID_INDEX_MESSAGE);
+        }
+    }
+
+    private void checkTreeIndex(int index, HeadList<PersistentLinkedListElement<E>> head) {
+        if ((index < 0) || (index >= head.sizeTree)) {
+            throw new IndexOutOfBoundsException(INVALID_INDEX_MESSAGE);
+        }
+    }
+
+    /**
+     * Возвращает true, если список полон (size == maxSize).
+     *
+     * @return true, если список полон
+     */
+    public boolean isFull() {
+        return isFull(getCurrentHead(), 0);
+    }
+
+    private boolean isFull(int extra) {
+        return isFull(getCurrentHead(), extra);
+    }
+
+    private boolean isFull(HeadList<PersistentLinkedListElement<E>> head) {
+        return isFull(head, 0);
+    }
+
+    private boolean isFull(HeadList<PersistentLinkedListElement<E>> head, int extra) {
+        return head.sizeTree + extra >= maxSize;
+    }
+
+    /**
+     * Возвращает true, если список не содержит элементов.
+     *
+     * @return true, если список не содержит элементов
+     */
     @Override
     public boolean isEmpty() {
         return getCurrentHead().size <= 0;
     }
 
+    /**
+     * Возвращает количество версий списка.
+     *
+     * @return количество версий списка
+     */
+    public int getVersionCount() {
+        return undo.size() + redo.size();
+    }
+
+    /**
+     * Заменяет элемент в указанной позиции этого списка указанным элементом.
+     *
+     * @param index   индекс замняемого элемента
+     * @param element элемент, который будет сохранен в указанной позиции
+     * @return заменяемый элемент
+     */
     @Override
-    public boolean contains(Object o) {
-        return false;
+    public E set(int index, E element) {
+        return set(getCurrentHead(), index, element);
     }
 
+    private E set(HeadList<PersistentLinkedListElement<E>> head, int index, E element) {
+        checkListIndex(index, head);
+
+        E result = get(index);
+
+        CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> copyResult
+                = copyLeaf(head, getTreeIndex(head, index));
+        PersistentLinkedListElement<E> newNode = new PersistentLinkedListElement<>(copyResult.leaf.value.get(copyResult.leafInnerIndex));
+        newNode.value = element;
+        copyResult.leaf.value.set(copyResult.leafInnerIndex, newNode);
+
+        HeadList<PersistentLinkedListElement<E>> newHead = copyResult.head;
+        undo.push(newHead);
+        redo.clear();
+        tryParentUndo(element);
+
+        return result;
+    }
+
+    /**
+     * Возвращает копию списка, в которой заменяет элемент в указанной позиции указанным элементом.
+     *
+     * @param index   индекс замняемого элемента
+     * @param element элемент, который будет сохранен в указанной позиции
+     * @return измененная копия списка
+     */
+    public PersistentLinkedList<E> assoc(int index, E element) {
+        PersistentLinkedList<E> result = new PersistentLinkedList<>(this);
+        result.set(index, element);
+        return result;
+    }
+
+    /**
+     * Добавление нового элмента в конец списка.
+     *
+     * @param element добавляемый элемент
+     * @return true если список изменился в результате вызова
+     */
     @Override
-    public Iterator<E> iterator() {
-        return new PersistentListIterator<>();
-    }
-
-    public Iterator<E> iterator(HeadList<PersistentLinkedListElement<E>> head) {
-        return new PersistentListIterator<>(head);
-    }
-
-    @Override
-    public String toString() {
-        return toString(getCurrentHead());
-    }
-
-    private String toString(HeadList<PersistentLinkedListElement<E>> head) {
-        if (head.size == 0) {
-            return "[]";
-        } else {
-            return Arrays.toString(toArray(head));
-        }
-    }
-
-    @Override
-    public Object[] toArray() {
-        return toArray(getCurrentHead());
-    }
-
-    private Object[] toArray(HeadList<PersistentLinkedListElement<E>> head) {
-        Object[] objects = new Object[head.size];
-        Iterator<E> iterator = iterator(head);
-        for (int i = 0; i < objects.length; i++) {
-            objects[i] = iterator.next();
-        }
-        return objects;
-    }
-
-    @Override
-    public <T> T[] toArray(T[] a) {
-        return null;
-    }
-
-    public void checkListIndex(int index) {
-        checkListIndex(index, getCurrentHead());
-    }
-
-    public void checkListIndex(int index, HeadList<PersistentLinkedListElement<E>> head) {
-        if (!((index >= 0) && (index < head.size))) {
-            throw new IndexOutOfBoundsException("Invalid index: " + index);
-        }
-    }
-
-    public void checkTreeIndex(int index, HeadList<PersistentLinkedListElement<E>> head) {
-        if (!((index >= 0) && (index < head.sizeTree))) {
-            throw new IndexOutOfBoundsException("Invalid index: " + index);
-        }
-    }
-
-    public boolean isFull() {
-        return isFull(getCurrentHead(), 0);
-    }
-
-    public boolean isFull(int extra) {
-        return isFull(getCurrentHead(), extra);
-    }
-
-    public boolean isFull(HeadList<PersistentLinkedListElement<E>> head) {
-        return isFull(head, 0);
-    }
-
-    public boolean isFull(HeadList<PersistentLinkedListElement<E>> head, int extra) {
-        return head.sizeTree + extra >= maxSize;
-    }
-
-    private Pair<Integer, Boolean> getNextIndex(HeadList<PersistentLinkedListElement<E>> head) {
-        if (head.deadList == null) {
-            return new Pair<>(head.sizeTree, false);
-        }
-
-        if (head.deadList.size() == 0) {
-            return new Pair<>(head.sizeTree, false);
-        }
-
-        head.deadList = new ArrayDeque<>(head.deadList);
-        return new Pair<>(head.deadList.pop(), true);
-    }
-
-    @Override
-    public boolean add(E newValue) {
+    public boolean add(E element) {
         if (isFull()) {
             return false;
         }
 
-        PersistentLinkedListElement<E> element;
+        PersistentLinkedListElement<E> listElement;
         HeadList<PersistentLinkedListElement<E>> prevHead = getCurrentHead();
         HeadList<PersistentLinkedListElement<E>> newHead;
         Pair<Integer, Boolean> next;
 
         if (getCurrentHead().size == 0) {
             newHead = new HeadList<>();
-            element = new PersistentLinkedListElement<>(newValue, -1, -1);
             newHead.first = 0;
             newHead.last = 0;
-
-            findLeafForNewElement(newHead).value.add(element);
+            listElement = new PersistentLinkedListElement<>(element, -1, -1);
+            findLeafForNewElement(newHead).value.add(listElement);
         } else {
-            element = new PersistentLinkedListElement<>(newValue, prevHead.last, -1);
+            listElement = new PersistentLinkedListElement<>(element, prevHead.last, -1);
             CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> tmp
                     = copyLeaf(prevHead, prevHead.last);
             newHead = tmp.head;
             next = getNextIndex(newHead);
+
             PersistentLinkedListElement<E> last = new PersistentLinkedListElement<>(tmp.leaf.value.get(tmp.leafInnerIndex));
             tmp.leaf.value.set(tmp.leafInnerIndex, last);
 
@@ -232,20 +231,19 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
                 newHead.last = newHead.sizeTree;
             } else {
                 last.next = next.getKey();
-                PersistentLinkedListElement<E> oldOne = new PersistentLinkedListElement<>(getValueFromLeaf(newHead, next.getKey()));
-
+                PersistentLinkedListElement<E> oldElement = new PersistentLinkedListElement<>(getValueFromLeaf(newHead, next.getKey()));
                 Pair<Node<PersistentLinkedListElement<E>>, Integer> oldLeaf = getLeaf(newHead, next.getKey());
-                oldLeaf.getKey().value.set(oldLeaf.getValue(), oldOne);
+                oldLeaf.getKey().value.set(oldLeaf.getValue(), oldElement);
 
-                oldOne.value = newValue;
-                oldOne.next = -1;
-                oldOne.prev = prevHead.last;
+                oldElement.value = element;
+                oldElement.next = -1;
+                oldElement.prev = prevHead.last;
                 newHead.last = last.next;
                 newHead.size++;
             }
 
             if (!next.getValue()) {
-                findLeafForNewElement(newHead).value.add(element);
+                findLeafForNewElement(newHead).value.add(listElement);
             }
         }
 
@@ -255,10 +253,21 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         return true;
     }
 
+    /**
+     * Добавление нового элмента по идексу.
+     * <p>
+     * Вставляет указанный элемент в указанную позицию в этом списке (дополнительная операция).
+     * Сдвигает элемент, находящийся в данный момент в этой позиции (если есть),
+     * и любые последующие элементы вправо (добавляет единицу к их индексам).
+     * </p>
+     *
+     * @param index   индекс, по которому указанный элемент должен быть вставлен
+     * @param element элемент, который нужно вставить
+     */
     @Override
-    public void add(int index, E value) {
+    public void add(int index, E element) {
         if (isFull()) {
-            throw new IllegalStateException("array is full");
+            throw new IllegalStateException(FULL_LIST_MESSAGE);
         }
 
         HeadList<PersistentLinkedListElement<E>> prevHead = getCurrentHead();
@@ -267,10 +276,10 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         checkListIndex(index, prevHead);
 
         int indexBefore = -1;
-        PersistentLinkedListElement<E> beforeE = null;
+        PersistentLinkedListElement<E> beforeElement;
 
         int indexAfter = -1;
-        PersistentLinkedListElement<E> afterE = null;
+        PersistentLinkedListElement<E> afterElement;
 
         int freeIndex = prevHead.sizeTree;
 
@@ -280,9 +289,9 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
             if (index != 0) {
                 indexBefore = getTreeIndex(index - 1);
                 CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> before = copyLeaf(prevHead, indexBefore);
-                beforeE = new PersistentLinkedListElement<>(before.leaf.value.get(before.leafInnerIndex));
-                beforeE.next = freeIndex;
-                before.leaf.value.set(before.leafInnerIndex, beforeE);
+                beforeElement = new PersistentLinkedListElement<>(before.leaf.value.get(before.leafInnerIndex));
+                beforeElement.next = freeIndex;
+                before.leaf.value.set(before.leafInnerIndex, beforeElement);
                 newHead = before.head;
             }
 
@@ -290,62 +299,45 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
                 indexAfter = getTreeIndex(index);
                 HeadList<PersistentLinkedListElement<E>> prevHead2 = newHead != null ? newHead : prevHead;
                 CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> after = copyLeaf(prevHead2, indexAfter);
-                afterE = new PersistentLinkedListElement<>(after.leaf.value.get(after.leafInnerIndex));
-                afterE.prev = freeIndex;
-                after.leaf.value.set(after.leafInnerIndex, afterE);
+                afterElement = new PersistentLinkedListElement<>(after.leaf.value.get(after.leafInnerIndex));
+                afterElement.prev = freeIndex;
+                after.leaf.value.set(after.leafInnerIndex, afterElement);
                 newHead = after.head;
             }
         }
 
         undo.push(newHead);
         redo.clear();
-        tryParentUndo(value);
+        tryParentUndo(element);
 
-        PersistentLinkedListElement<E> element = new PersistentLinkedListElement<>(value, indexBefore, indexAfter);
+        PersistentLinkedListElement<E> listElement = new PersistentLinkedListElement<>(element, indexBefore, indexAfter);
 
-        if (indexBefore == -1) {
+        if (indexBefore == -1 && newHead != null) {
             newHead.first = freeIndex;
         }
 
-        if (indexAfter == -1) {
+        if (indexAfter == -1 && newHead != null) {
             newHead.last = freeIndex;
         }
 
-        findLeafForNewElement(newHead).value.add(element);
+        findLeafForNewElement(newHead).value.add(listElement);
     }
 
-    private int getTreeIndex(int listIndex) {
-        return getTreeIndex(getCurrentHead(), listIndex);
-    }
-
-    private int getTreeIndex(HeadList<PersistentLinkedListElement<E>> head, int listIndex) {
-        checkListIndex(listIndex, head);
-
-        if (head.size == 0) {
-            return -1;
-        }
-
-        int result = head.first;
-        PersistentLinkedListElement<E> current;
-
-        for (int i = 0; i < listIndex; i++) {
-            Pair<Node<PersistentLinkedListElement<E>>, Integer> pair = getLeaf(head, result);
-            current = pair.getKey().value.get(pair.getValue());
-            result = current.next;
-        }
-
-        return result;
-    }
-
-    public PersistentLinkedList<E> conj(E newElement) {
+    /**
+     * Возвращает копию списка, в конец которой добавлен указанный элемент.
+     *
+     * @param element добавляемый элемент
+     * @return измененная копия списка
+     */
+    public PersistentLinkedList<E> conj(E element) {
         PersistentLinkedList<E> result = new PersistentLinkedList<>(this);
-        result.add(newElement);
+        result.add(element);
         return result;
     }
 
     protected Node<PersistentLinkedListElement<E>> findLeafForNewElement(HeadList<PersistentLinkedListElement<E>> head) {
         if (isFull(head)) {
-            throw new IndexOutOfBoundsException("collection is full");
+            throw new IllegalStateException(FULL_LIST_MESSAGE);
         }
 
         head.size += 1;
@@ -370,7 +362,6 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
                     currentNode.child.set(widthIndex, newNode);
                 }
             }
-
             currentNode = newNode;
         }
 
@@ -381,138 +372,17 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         return currentNode;
     }
 
-    @Override
-    public boolean remove(Object o) {
-        return false;
-    }
-
-    @Override
-    public boolean containsAll(Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public boolean addAll(Collection<? extends E> c) {
-        return false;
-    }
-
-    @Override
-    public boolean addAll(int index, Collection<? extends E> c) {
-        return false;
-    }
-
-    @Override
-    public boolean removeAll(Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public boolean retainAll(Collection<?> c) {
-        return false;
-    }
-
-    @Override
-    public void clear() {
-        HeadList<PersistentLinkedListElement<E>> head = new HeadList<>();
-        undo.push(head);
-        redo.clear();
-    }
-
-    private PersistentLinkedListElement<E> getValueFromLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
-        return getLeaf(head, index).getKey().value.get(index & mask);
-    }
-
-    @Override
-    public E get(int index) {
-        return get(getCurrentHead(), index);
-    }
-
-    private PersistentLinkedListElement<E> getPersistentLinkedListElement(HeadList<PersistentLinkedListElement<E>> head, int index) {
-        checkListIndex(index);
-        int treeIndex = getTreeIndex(index);
-        if (treeIndex == -1) {
-            throw new IndexOutOfBoundsException("getTreeIndex == -1");
-        }
-
-        return getLeaf(head, treeIndex).getKey().value.get(treeIndex & mask);
-    }
-
-    private E get(HeadList<PersistentLinkedListElement<E>> head, int index) {
-        if (index == 0) {
-            return getValueFromLeaf(head, head.first).value;
-        }
-
-        if (index == head.size - 1) {
-            return getValueFromLeaf(head, head.last).value;
-        }
-
-        return getPersistentLinkedListElement(head, index).value;
-    }
-
-    protected Pair<Node<PersistentLinkedListElement<E>>, Integer> getLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
-        checkTreeIndex(index, head);
-
-        Node<PersistentLinkedListElement<E>> node = head.root;
-        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
-            int widthIndex = (index >> level) & mask;
-            node = node.child.get(widthIndex);
-        }
-
-        return new Pair<>(node, index & mask);
-    }
-
-    private CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> copyLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
-        if (isFull()) {
-            throw new IllegalStateException("array is full");
-        }
-        checkTreeIndex(index, head);
-
-        HeadList<PersistentLinkedListElement<E>> newHead = new HeadList<>(head, 0);
-        Node<PersistentLinkedListElement<E>> currentNode = newHead.root;
-        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
-            int widthIndex = (index >> level) & mask;
-            Node<PersistentLinkedListElement<E>> tmp, newNode;
-            tmp = currentNode.child.get(widthIndex);
-            newNode = new Node<>(tmp);
-            currentNode.child.set(widthIndex, newNode);
-            currentNode = newNode;
-        }
-
-        return new CopyResult<>(currentNode, index & mask, newHead);
-    }
-
-    public int getVersionCount() {
-        return undo.size() + redo.size();
-    }
-
-    public PersistentLinkedList<E> assoc(int index, E element) {
-        PersistentLinkedList<E> result = new PersistentLinkedList<>(this);
-        result.set(index, element);
-        return result;
-    }
-
-    @Override
-    public E set(int index, E element) {
-        return set(getCurrentHead(), index, element);
-    }
-
-    private E set(HeadList<PersistentLinkedListElement<E>> prevHead, int index, E element) {
-        E oldResult = get(index);
-        checkListIndex(index, prevHead);
-        CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> copyResult
-                = copyLeaf(prevHead, getTreeIndex(prevHead, index));
-        HeadList<PersistentLinkedListElement<E>> newHead = copyResult.head;
-        PersistentLinkedListElement<E> newNode = new PersistentLinkedListElement<>(copyResult.leaf.value.get(copyResult.leafInnerIndex));
-        newNode.value = element;
-        copyResult.leaf.value.set(copyResult.leafInnerIndex, newNode);
-
-        undo.push(newHead);
-        redo.clear();
-        tryParentUndo(element);
-
-        return oldResult;
-    }
-
+    /**
+     * Удаляет элемент по указанному индексу.
+     * <p>
+     * Удаляет элемент в указанной позиции в этом списке.
+     * Сдвигает любые последующие элементы влево (вычитает единицу из их индексов).
+     * Возвращает элемент, который был удален из списка.
+     * </p>
+     *
+     * @param index индекс удаляемого элемента
+     * @return удаленный элемент
+     */
     @Override
     public E remove(int index) {
         return remove(getCurrentHead(), index);
@@ -616,6 +486,223 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         redo.clear();
     }
 
+    /**
+     * Удаляет все элементы из этого списка.
+     * Список будет пуст после возврата этого вызова.
+     */
+    @Override
+    public void clear() {
+        HeadList<PersistentLinkedListElement<E>> head = new HeadList<>();
+        undo.push(head);
+        redo.clear();
+    }
+
+    private int getTreeIndex(int listIndex) {
+        return getTreeIndex(getCurrentHead(), listIndex);
+    }
+
+    private int getTreeIndex(HeadList<PersistentLinkedListElement<E>> head, int listIndex) {
+        checkListIndex(listIndex, head);
+
+        if (head.size == 0) {
+            return -1;
+        }
+
+        int result = head.first;
+        PersistentLinkedListElement<E> current;
+
+        for (int i = 0; i < listIndex; i++) {
+            Pair<Node<PersistentLinkedListElement<E>>, Integer> pair = getLeaf(head, result);
+            current = pair.getKey().value.get(pair.getValue());
+            result = current.next;
+        }
+
+        return result;
+    }
+
+    /**
+     * Возвращает элемент в указанной позиции в списке.
+     *
+     * @param index индекс возвращаемого элемента
+     * @return элемент в указанной позиции в списке
+     */
+    @Override
+    public E get(int index) {
+        return get(getCurrentHead(), index);
+    }
+
+    private E get(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        if (index == 0) {
+            return getValueFromLeaf(head, head.first).value;
+        } else if (index == head.size - 1) {
+            return getValueFromLeaf(head, head.last).value;
+        } else {
+            return getPersistentLinkedListElement(head, index).value;
+        }
+    }
+
+    private PersistentLinkedListElement<E> getPersistentLinkedListElement(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        checkListIndex(index);
+        int treeIndex = getTreeIndex(index);
+        if (treeIndex == -1) {
+            throw new IndexOutOfBoundsException("getTreeIndex == -1");
+        }
+
+        return getLeaf(head, treeIndex).getKey().value.get(treeIndex & mask);
+    }
+
+    private PersistentLinkedListElement<E> getValueFromLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        return getLeaf(head, index).getKey().value.get(index & mask);
+    }
+
+    private Pair<Node<PersistentLinkedListElement<E>>, Integer> getLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        checkTreeIndex(index, head);
+
+        Node<PersistentLinkedListElement<E>> node = head.root;
+        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
+            int widthIndex = (index >> level) & mask;
+            node = node.child.get(widthIndex);
+        }
+
+        return new Pair<>(node, index & mask);
+    }
+
+    private Pair<Integer, Boolean> getNextIndex(HeadList<PersistentLinkedListElement<E>> head) {
+        if (head.deadList == null) {
+            return new Pair<>(head.sizeTree, false);
+        }
+
+        if (head.deadList.size() == 0) {
+            return new Pair<>(head.sizeTree, false);
+        }
+
+        head.deadList = new ArrayDeque<>(head.deadList);
+        return new Pair<>(head.deadList.pop(), true);
+    }
+
+    private CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> copyLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
+        if (isFull()) {
+            throw new IllegalStateException(FULL_LIST_MESSAGE);
+        }
+        checkTreeIndex(index, head);
+
+        HeadList<PersistentLinkedListElement<E>> newHead = new HeadList<>(head, 0);
+        Node<PersistentLinkedListElement<E>> currentNode = newHead.root;
+        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
+            int widthIndex = (index >> level) & mask;
+            Node<PersistentLinkedListElement<E>> tmp, newNode;
+            tmp = currentNode.child.get(widthIndex);
+            newNode = new Node<>(tmp);
+            currentNode.child.set(widthIndex, newNode);
+            currentNode = newNode;
+        }
+
+        return new CopyResult<>(currentNode, index & mask, newHead);
+    }
+
+    public int getUniqueLeafsSize() {
+        LinkedList<Node<PersistentLinkedListElement<E>>> list = new LinkedList<>();
+        getUniqueLeafsSize(list, undo);
+        getUniqueLeafsSize(list, redo);
+
+        return list.size();
+    }
+
+    private void getUniqueLeafsSize(LinkedList<Node<PersistentLinkedListElement<E>>> list, Stack<HeadList<PersistentLinkedListElement<E>>> undo1) {
+        for (HeadList<PersistentLinkedListElement<E>> head : undo1) {
+            for (int i = 0; i < head.size; i++) {
+                Node<PersistentLinkedListElement<E>> leaf = getLeaf(head, i).getKey();
+                if (!list.contains(leaf)) {
+                    list.add(leaf);
+                }
+            }
+        }
+    }
+
+    /**
+     * Возвращает строковое представление содержимого списка.
+     * Строковое представление состоит из списка элементов списка, заключенного в квадратные скобки («[]»).
+     * Смежные элементы разделяются символами «, » (запятая с последующим пробелом).
+     *
+     * @return строковое представление списка
+     */
+    @Override
+    public String toString() {
+        return toString(getCurrentHead());
+    }
+
+    private String toString(HeadList<PersistentLinkedListElement<E>> head) {
+        if (head.size == 0) {
+            return "[]";
+        } else {
+            return Arrays.toString(toArray(head));
+        }
+    }
+
+    /**
+     * Возвращает массив, содержащий все элементы этого списка в правильной последовательности (от первого до последнего элемента).
+     * <p>
+     * Возвращенный массив будет "безопасным" в том смысле, что этот список не поддерживает никаких ссылок на него.
+     * (Другими словами, этот метод должен выделять новый массив, даже если эта коллекция поддерживается массивом).
+     * Таким образом, вызывающий объект может изменять возвращаемый массив.
+     * </p>
+     *
+     * @return массив, содержащий все элементы этого списка в правильной последовательности
+     */
+    @Override
+    public Object[] toArray() {
+        return toArray(getCurrentHead());
+    }
+
+    private Object[] toArray(HeadList<PersistentLinkedListElement<E>> head) {
+        Object[] objects = new Object[head.size];
+        Iterator<E> iterator = iterator(head);
+        for (int i = 0; i < objects.length; i++) {
+            objects[i] = iterator.next();
+        }
+        return objects;
+    }
+
+    @Override
+    public <T> T[] toArray(T[] a) {
+        return null;
+    }
+
+    @Override
+    public boolean contains(Object o) {
+        return false;
+    }
+
+    @Override
+    public boolean containsAll(Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public boolean addAll(Collection<? extends E> c) {
+        return false;
+    }
+
+    @Override
+    public boolean addAll(int index, Collection<? extends E> c) {
+        return false;
+    }
+
+    @Override
+    public boolean remove(Object o) {
+        return false;
+    }
+
+    @Override
+    public boolean removeAll(Collection<?> c) {
+        return false;
+    }
+
+    @Override
+    public boolean retainAll(Collection<?> c) {
+        return false;
+    }
+
     @Override
     public int indexOf(Object o) {
         return 0;
@@ -641,9 +728,23 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
         return null;
     }
 
+    @Override
+    public Iterator<E> iterator() {
+        return new PersistentListIterator<>();
+    }
+
+    public Iterator<E> iterator(HeadList<PersistentLinkedListElement<E>> head) {
+        return new PersistentListIterator<>(head);
+    }
+
+    /**
+     * Итератор над персистентным массивом.
+     *
+     * @param <E2>
+     */
     public class PersistentListIterator<E2> implements java.util.Iterator<E2> {
-        PersistentLinkedListElement<E> current;
         HeadList<PersistentLinkedListElement<E>> head;
+        PersistentLinkedListElement<E> current;
         int i = 0;
 
         public PersistentListIterator(HeadList<PersistentLinkedListElement<E>> head) {
@@ -660,11 +761,21 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection<Persis
             this(getCurrentHead());
         }
 
+        /**
+         * Возвращает true, если итерация содержит больше элементов.
+         *
+         * @return true, если итерация имеет больше элементов
+         */
         @Override
         public boolean hasNext() {
             return head.size > i;
         }
 
+        /**
+         * Возвращает следующий элемент в итерации.
+         *
+         * @return следующий элемент в итерации
+         */
         @Override
         @SuppressWarnings("unchecked")
         public E2 next() {
