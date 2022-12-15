@@ -1,28 +1,40 @@
-package ru.nsu.fit.mpm.persistent_ds;
+package ru.nsu.fit.mpm.persistent_ds.map;
 
-import java.util.*;
+import ru.nsu.fit.mpm.persistent_ds.collection.UndoRedoCollection;
+import ru.nsu.fit.mpm.persistent_ds.list.PersistentLinkedList;
 
-public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRedo {
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.Stack;
+
+public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRedoCollection {
+    private static final int TABLE_MAX_SIZE = 16;
 
     private final ArrayList<PersistentLinkedList<Pair<K, V>>> table;
-    private final int tableMaxSize = 16;
     private final Stack<Integer> redo = new Stack<>();
     private final Stack<Integer> undo = new Stack<>();
-    private PersistentHashMap<?, PersistentHashMap<?, ?>> parent;
-    private int countInsertedHM = 0;
     private final Stack<PersistentHashMap<?, ?>> insertedUndo = new Stack<>();
     private final Stack<PersistentHashMap<?, ?>> insertedRedo = new Stack<>();
 
+    private PersistentHashMap<?, PersistentHashMap<?, ?>> parent;
+    private int countInsertedHM = 0;
+
     public PersistentHashMap() {
         this.table = new ArrayList<>(30);
-        for (int i = 0; i < tableMaxSize; i++) {
+        for (int i = 0; i < TABLE_MAX_SIZE; i++) {
             table.add(new PersistentLinkedList<>());
         }
     }
 
     public PersistentHashMap(PersistentHashMap<K, V> other) {
         this.table = new ArrayList<>(30);
-        for (int i = 0; i < tableMaxSize; i++) {
+        for (int i = 0; i < TABLE_MAX_SIZE; i++) {
             table.add(new PersistentLinkedList<>(other.table.get(i)));
         }
         this.undo.addAll(other.undo);
@@ -145,7 +157,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     }
 
     private int calculateIndex(int hashcode) {
-        return hashcode & (tableMaxSize - 1);
+        return hashcode & (TABLE_MAX_SIZE - 1);
     }
 
     @Override

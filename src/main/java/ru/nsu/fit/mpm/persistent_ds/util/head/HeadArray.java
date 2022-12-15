@@ -1,8 +1,10 @@
-package ru.nsu.fit.mpm.persistent_ds;
+package ru.nsu.fit.mpm.persistent_ds.util.head;
+
+import ru.nsu.fit.mpm.persistent_ds.util.node.Node;
 
 public class HeadArray<E> {
-    public Node<E> root;
-    public int size = 0;
+    private final Node<E> root;
+    private int size = 0;
 
     public HeadArray() {
         this.root = new Node<>();
@@ -23,11 +25,20 @@ public class HeadArray<E> {
         this.size = newSize;
     }
 
+    public Node<E> getRoot() {
+        return root;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    public void setSize(int size) {
+        this.size = size;
+    }
+
     @Override
     public String toString() {
         return String.format("%09x %d", root.hashCode(), size);
-    }
-
-    public void copyTree(HeadList<E> other) {
     }
 }

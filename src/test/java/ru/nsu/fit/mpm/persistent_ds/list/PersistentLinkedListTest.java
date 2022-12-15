@@ -1,10 +1,13 @@
-package ru.nsu.fit.mpm.persistent_ds;
+package ru.nsu.fit.mpm.persistent_ds.list;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PersistentLinkedListTest {
     PersistentLinkedList<Integer> persistentLinkedList;
@@ -14,8 +17,8 @@ class PersistentLinkedListTest {
         fill(fillSize);
     }
 
-    private void init(int fillSize, int depth, int bit_na_pu) {
-        persistentLinkedList = new PersistentLinkedList<>(depth, bit_na_pu);
+    private void init(int fillSize, int depth, int bitPerNode) {
+        persistentLinkedList = new PersistentLinkedList<>(depth, bitPerNode);
         fill(fillSize);
     }
 
@@ -31,40 +34,40 @@ class PersistentLinkedListTest {
         persistentLinkedList.add(3);
         assertEquals(1, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(2, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(0, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(0, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(1, persistentLinkedList.size());
         assertEquals("[3]", persistentLinkedList.toString());
 
         persistentLinkedList.add(4);
         assertEquals(2, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(3, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(1, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(1, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(2, persistentLinkedList.size());
         assertEquals("[3, 4]", persistentLinkedList.toString());
 
         persistentLinkedList.add(6);
         assertEquals(3, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(4, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(2, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(2, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(3, persistentLinkedList.size());
         assertEquals("[3, 4, 6]", persistentLinkedList.toString());
 
         persistentLinkedList.add(9);
         assertEquals(4, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(5, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(3, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(3, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(4, persistentLinkedList.size());
         assertEquals("[3, 4, 6, 9]", persistentLinkedList.toString());
 
         persistentLinkedList.undo();
         assertEquals(4, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(5, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(2, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(2, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(3, persistentLinkedList.size());
         assertEquals("[3, 4, 6]", persistentLinkedList.toString());
     }
@@ -79,16 +82,16 @@ class PersistentLinkedListTest {
         persistentLinkedList.add(7);
         assertEquals(5, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(6, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(4, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(4, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(5, persistentLinkedList.size());
         assertEquals("[3, 4, 6, 0, 7]", persistentLinkedList.toString());
 
         persistentLinkedList.add(3, 9);
         assertEquals(6, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(7, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(4, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(4, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(6, persistentLinkedList.size());
         assertEquals("[3, 4, 6, 9, 0, 7]", persistentLinkedList.toString());
     }
@@ -101,32 +104,32 @@ class PersistentLinkedListTest {
         persistentLinkedList.add(6);
         assertEquals(3, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(4, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(2, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(2, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(3, persistentLinkedList.size());
         assertEquals("[3, 4, 6]", persistentLinkedList.toString());
 
         persistentLinkedList.add(1, 9);
         assertEquals(4, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(5, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(2, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(2, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(4, persistentLinkedList.size());
         assertEquals("[3, 9, 4, 6]", persistentLinkedList.toString());
 
         persistentLinkedList.add(1, 7);
         assertEquals(5, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(6, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(2, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(2, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(5, persistentLinkedList.size());
         assertEquals("[3, 7, 9, 4, 6]", persistentLinkedList.toString());
 
         persistentLinkedList.add(8);
         assertEquals(6, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(7, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(5, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(5, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(6, persistentLinkedList.size());
         assertEquals("[3, 7, 9, 4, 6, 8]", persistentLinkedList.toString());
     }
@@ -139,24 +142,24 @@ class PersistentLinkedListTest {
         persistentLinkedList.add(3);
         assertEquals(4, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(4, persistentLinkedList.getVersionCount());
-        assertEquals(0, persistentLinkedList.getCurrentHead().first);
-        assertEquals(2, persistentLinkedList.getCurrentHead().last);
+        assertEquals(0, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(2, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(3, persistentLinkedList.size());
         assertEquals("[1, 2, 3]", persistentLinkedList.toString());
 
         persistentLinkedList.add(0, 4);
         assertEquals(6, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(5, persistentLinkedList.getVersionCount());
-        assertEquals(3, persistentLinkedList.getCurrentHead().first);
-        assertEquals(2, persistentLinkedList.getCurrentHead().last);
+        assertEquals(3, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(2, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(4, persistentLinkedList.size());
         assertEquals("[4, 1, 2, 3]", persistentLinkedList.toString());
 
         persistentLinkedList.add(0, 5);
         assertEquals(8, persistentLinkedList.getUniqueLeafsSize());
         assertEquals(6, persistentLinkedList.getVersionCount());
-        assertEquals(4, persistentLinkedList.getCurrentHead().first);
-        assertEquals(2, persistentLinkedList.getCurrentHead().last);
+        assertEquals(4, persistentLinkedList.getCurrentHead().getFirst());
+        assertEquals(2, persistentLinkedList.getCurrentHead().getLast());
         assertEquals(5, persistentLinkedList.size());
         assertEquals("[5, 4, 1, 2, 3]", persistentLinkedList.toString());
 
@@ -322,33 +325,6 @@ class PersistentLinkedListTest {
     }
 
     @Test
-    void testPersistentLinkedListForEach() {
-        init(3);
-        StringBuilder stringBuilder = new StringBuilder();
-        for (Integer i : persistentLinkedList) {
-            stringBuilder.append(i);
-        }
-
-        assertEquals("012", stringBuilder.toString());
-
-        PersistentLinkedList<PersistentHashMap.Pair<String, Integer>> pl2 = new PersistentLinkedList<>();
-        pl2.add(new PersistentHashMap.Pair<>("Test_str_1", 1));
-        pl2.add(new PersistentHashMap.Pair<>("Test_str_2", 2));
-        pl2.add(new PersistentHashMap.Pair<>("Test_str_3", 3));
-
-        stringBuilder = new StringBuilder();
-        for (PersistentHashMap.Pair<String, Integer> pair : pl2) {
-            stringBuilder.append("[");
-            stringBuilder.append(pair.getKey());
-            stringBuilder.append(" ");
-            stringBuilder.append(pair.getValue());
-            stringBuilder.append("]");
-        }
-
-        assertEquals("[Test_str_1 1][Test_str_2 2][Test_str_3 3]", stringBuilder.toString());
-    }
-
-    @Test
     void testPersistentLinkedListClear() {
         init(3);
         assertEquals("[0, 1, 2]", persistentLinkedList.toString());
@@ -431,26 +407,26 @@ class PersistentLinkedListTest {
         linkedList.add(4);
         linkedList.add(5);
         assertEquals("[3, 4, 5]", linkedList.toString());
-        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+        assertEquals(3, linkedList.getCurrentHead().getSizeTree());
 
         linkedList.remove(1);
         assertEquals("[3, 5]", linkedList.toString());
-        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+        assertEquals(3, linkedList.getCurrentHead().getSizeTree());
 
         linkedList.add(6);
         assertEquals("[3, 5, 6]", linkedList.toString());
-        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+        assertEquals(3, linkedList.getCurrentHead().getSizeTree());
 
         linkedList.undo();
         assertEquals("[3, 5]", linkedList.toString());
-        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+        assertEquals(3, linkedList.getCurrentHead().getSizeTree());
 
         linkedList.add(7);
         assertEquals("[3, 5, 7]", linkedList.toString());
-        assertEquals(3, linkedList.getCurrentHead().sizeTree);
+        assertEquals(3, linkedList.getCurrentHead().getSizeTree());
 
         linkedList.add(8);
         assertEquals("[3, 5, 7, 8]", linkedList.toString());
-        assertEquals(4, linkedList.getCurrentHead().sizeTree);
+        assertEquals(4, linkedList.getCurrentHead().getSizeTree());
     }
 }
