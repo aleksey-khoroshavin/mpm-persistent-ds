@@ -450,13 +450,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
         return getCurrentHead().getRoot().drawGraph();
     }
 
-    /**
-     * Возвращает строковое представление содержимого массива.
-     * Строковое представление состоит из списка элементов массива, заключенного в квадратные скобки («[]»).
-     * Смежные элементы разделяются символами «, » (запятая с последующим пробелом).
-     *
-     * @return строковое представление массива
-     */
     @Override
     public String toString() {
         return toString(getCurrentHead());
@@ -466,16 +459,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
         return Arrays.toString(toArray(head));
     }
 
-    /**
-     * Возвращает массив, содержащий все элементы этого массива в правильной последовательности (от первого до последнего элемента).
-     * <p>
-     * Возвращенный массив будет "безопасным" в том смысле, что этот массив не поддерживает никаких ссылок на него.
-     * (Другими словами, этот метод должен выделять новый массив, даже если эта коллекция поддерживается массивом).
-     * Таким образом, вызывающий объект может изменять возвращаемый массив.
-     * </p>
-     *
-     * @return массив, содержащий все элементы этого массива в правильной последовательности
-     */
     @Override
     public Object[] toArray() {
         return toArray(getCurrentHead());
@@ -578,7 +561,6 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
          * @return следующий элемент в итерации
          */
         @Override
-        @SuppressWarnings("unchecked")
         public T next() {
             return (T) get(index++);
         }
