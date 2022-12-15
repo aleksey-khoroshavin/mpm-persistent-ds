@@ -1,12 +1,12 @@
-package ru.nsu.fit.mpm.persistent_ds;
+package ru.nsu.fit.mpm.persistent_ds.util.head;
 
-import java.util.ArrayDeque;
+import java.util.Deque;
 
 public class HeadList<E> extends HeadArray<E> {
-    public int first = -1;
-    public int last = -1;
-    public int sizeTree = 0;
-    public ArrayDeque<Integer> deadList;
+    private int first = -1;
+    private int last = -1;
+    private int sizeTree = 0;
+    private Deque<Integer> deadList;
 
     public HeadList() {
         super();
@@ -29,16 +29,43 @@ public class HeadList<E> extends HeadArray<E> {
         copyOther(other);
     }
 
-    public HeadList(HeadList<E> other, Integer newSize, Integer maxIndex) {
-        super(other, newSize, maxIndex);
-        copyOther(other);
+    public int getFirst() {
+        return first;
+    }
+
+    public void setFirst(int first) {
+        this.first = first;
+    }
+
+    public int getLast() {
+        return last;
+    }
+
+    public void setLast(int last) {
+        this.last = last;
+    }
+
+    public int getSizeTree() {
+        return sizeTree;
+    }
+
+    public void setSizeTree(int sizeTree) {
+        this.sizeTree = sizeTree;
+    }
+
+    public Deque<Integer> getDeadList() {
+        return deadList;
+    }
+
+    public void setDeadList(Deque<Integer> deadList) {
+        this.deadList = deadList;
     }
 
     @Override
     public String toString() {
         return String.format("%09x s:%d; S:%d; F:%d; L:%d; D:%09x%s",
                 this.hashCode(),
-                size,
+                getSize(),
                 sizeTree,
                 first,
                 last,

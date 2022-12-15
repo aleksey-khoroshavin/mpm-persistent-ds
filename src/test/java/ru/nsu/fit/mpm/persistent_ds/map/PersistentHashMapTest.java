@@ -1,4 +1,4 @@
-package ru.nsu.fit.mpm.persistent_ds;
+package ru.nsu.fit.mpm.persistent_ds.map;
 
 import org.junit.jupiter.api.Test;
 

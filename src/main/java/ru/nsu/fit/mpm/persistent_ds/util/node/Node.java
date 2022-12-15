@@ -1,13 +1,12 @@
-package ru.nsu.fit.mpm.persistent_ds;
+package ru.nsu.fit.mpm.persistent_ds.util.node;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 public class Node<E> {
-
-    public List<Node<E>> child;
-    public List<E> value;
+    private List<Node<E>> child;
+    private List<E> value;
 
     public Node() {
     }
@@ -42,11 +41,27 @@ public class Node<E> {
         }
     }
 
+    public List<Node<E>> getChild() {
+        return child;
+    }
+
+    public void setChild(List<Node<E>> child) {
+        this.child = child;
+    }
+
+    public List<E> getValue() {
+        return value;
+    }
+
+    public void setValue(List<E> value) {
+        this.value = value;
+    }
+
     @Override
     public String toString() {
-        String childs = child == null ? "[child null]" : Arrays.toString(child.toArray());
+        String childNodes = child == null ? "[child null]" : Arrays.toString(child.toArray());
         String values = value == null ? "[value null]" : Arrays.toString(value.toArray());
-        return String.format("%09x %s %s", hashCode(), childs, values);
+        return String.format("%09x %s %s", hashCode(), childNodes, values);
     }
 
     public boolean isEmpty() {
@@ -54,11 +69,7 @@ public class Node<E> {
             return true;
         }
 
-        boolean result = true;
-
-        if ((child != null) && (!child.isEmpty())) {
-            result = false;
-        }
+        boolean result = (child == null) || (child.isEmpty());
 
         if ((value != null) && (!value.isEmpty())) {
             result = false;
@@ -68,11 +79,11 @@ public class Node<E> {
     }
 
     private String drawTab(int count) {
-        String s = "";
+        StringBuilder s = new StringBuilder();
         for (int i = 0; i < count; i++) {
-            s += "  ";
+            s.append("  ");
         }
-        return s;
+        return s.toString();
     }
 
     private String drawGraph(Node<E> node, int level) {
