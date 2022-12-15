@@ -23,7 +23,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     private final Stack<PersistentHashMap<?, ?>> insertedRedo = new Stack<>();
 
     private PersistentHashMap<?, PersistentHashMap<?, ?>> parent;
-    private int countInsertedHM = 0;
+    private int countInsertedMaps = 0;
 
     public PersistentHashMap() {
         this.table = new ArrayList<>(30);
@@ -135,6 +135,16 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     }
 
     @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
+    }
+
+    @Override
+    public int hashCode() {
+        return super.hashCode();
+    }
+
+    @Override
     public String toString() {
         if (isEmpty()) {
             return "[]";
@@ -180,7 +190,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
     public void redo() {
         if (!insertedRedo.empty()) {
             if (insertedRedo.peek().isEmpty()) {
-                if (insertedRedo.peek().parent.size() == countInsertedHM) {
+                if (insertedRedo.peek().parent.size() == countInsertedMaps) {
                     standardInsertedRedo();
                 } else {
                     insertedUndo.push(insertedRedo.pop());
@@ -216,7 +226,7 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
 
     private void tryParentUndo(V value) {
         if (value instanceof PersistentHashMap) {
-            countInsertedHM++;
+            countInsertedMaps++;
             ((PersistentHashMap) value).parent = this;
             insertedUndo.push((PersistentHashMap) value);
             redo.clear();

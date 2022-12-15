@@ -2,7 +2,6 @@ package ru.nsu.fit.mpm.persistent_ds.list;
 
 import javafx.util.Pair;
 import ru.nsu.fit.mpm.persistent_ds.collection.AbstractPersistentCollection;
-import ru.nsu.fit.mpm.persistent_ds.util.copy_path.CopyResult;
 import ru.nsu.fit.mpm.persistent_ds.util.head.HeadList;
 import ru.nsu.fit.mpm.persistent_ds.util.node.Node;
 
@@ -432,8 +431,13 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
 
             newHead = copyLeaf(prevHead, nextIndex).getHead();
 
-            PersistentLinkedListElement<E> nextPersistentLinkedListElement = getPersistentLinkedListElement(newHead, nextIndex);
-            PersistentLinkedListElement<E> newNextPersistentLinkedListElement = new PersistentLinkedListElement<>(nextPersistentLinkedListElement);
+            PersistentLinkedListElement<E> nextPersistentLinkedListElement = getPersistentLinkedListElement(
+                    newHead,
+                    nextIndex);
+
+            PersistentLinkedListElement<E> newNextPersistentLinkedListElement = new PersistentLinkedListElement<>(
+                    nextPersistentLinkedListElement);
+
             newNextPersistentLinkedListElement.setPrev(-1);
 
             Pair<Node<PersistentLinkedListElement<E>>, Integer> leafNext = getLeaf(newHead, treeNextIndex);
@@ -451,8 +455,12 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
 
             newHead = copyLeaf(prevHead, prevIndex).getHead();
 
-            PersistentLinkedListElement<E> prevPersistentLinkedListElement = getPersistentLinkedListElement(newHead, prevIndex);
-            PersistentLinkedListElement<E> newPrevPersistentLinkedListElement = new PersistentLinkedListElement<>(prevPersistentLinkedListElement);
+            PersistentLinkedListElement<E> prevPersistentLinkedListElement = getPersistentLinkedListElement(
+                    newHead,
+                    prevIndex);
+
+            PersistentLinkedListElement<E> newPrevPersistentLinkedListElement = new PersistentLinkedListElement<>(
+                    prevPersistentLinkedListElement);
             newPrevPersistentLinkedListElement.setNext(-1);
 
             Pair<Node<PersistentLinkedListElement<E>>, Integer> leafPrev = getLeaf(newHead, treePrevIndex);
@@ -469,8 +477,13 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
 
         newHead = copyLeaf(prevHead, nextIndex).getHead();
 
-        PersistentLinkedListElement<E> nextPersistentLinkedListElement = getPersistentLinkedListElement(newHead, nextIndex);
-        PersistentLinkedListElement<E> newNextPersistentLinkedListElement = new PersistentLinkedListElement<>(nextPersistentLinkedListElement);
+        PersistentLinkedListElement<E> nextPersistentLinkedListElement = getPersistentLinkedListElement(
+                newHead,
+                nextIndex);
+
+        PersistentLinkedListElement<E> newNextPersistentLinkedListElement = new PersistentLinkedListElement<>(
+                nextPersistentLinkedListElement);
+
         newNextPersistentLinkedListElement.setPrev(mid.getPrev());
 
         Pair<Node<PersistentLinkedListElement<E>>, Integer> leafNext = getLeaf(newHead, treeNextIndex);
@@ -481,8 +494,13 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
 
         newHead = copyLeaf(newHead, prevIndex).getHead();
 
-        PersistentLinkedListElement<E> prevPersistentLinkedListElement = getPersistentLinkedListElement(newHead, prevIndex);
-        PersistentLinkedListElement<E> newPrevPersistentLinkedListElement = new PersistentLinkedListElement<>(prevPersistentLinkedListElement);
+        PersistentLinkedListElement<E> prevPersistentLinkedListElement = getPersistentLinkedListElement(
+                newHead,
+                prevIndex);
+
+        PersistentLinkedListElement<E> newPrevPersistentLinkedListElement = new PersistentLinkedListElement<>(
+                prevPersistentLinkedListElement);
+
         newPrevPersistentLinkedListElement.setNext(mid.getNext());
 
         Pair<Node<PersistentLinkedListElement<E>>, Integer> leafPrev = getLeaf(newHead, treePrevIndex);
@@ -561,7 +579,8 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
         }
     }
 
-    private PersistentLinkedListElement<E> getPersistentLinkedListElement(HeadList<PersistentLinkedListElement<E>> head, int index) {
+    private PersistentLinkedListElement<E> getPersistentLinkedListElement(
+            HeadList<PersistentLinkedListElement<E>> head, int index) {
         checkListIndex(index);
         int treeIndex = getTreeIndex(index);
         if (treeIndex == -1) {
@@ -575,7 +594,8 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
         return getLeaf(head, index).getKey().getValue().get(index & mask);
     }
 
-    private Pair<Node<PersistentLinkedListElement<E>>, Integer> getLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
+    private Pair<Node<PersistentLinkedListElement<E>>, Integer> getLeaf(
+            HeadList<PersistentLinkedListElement<E>> head, int index) {
         checkTreeIndex(index, head);
 
         Node<PersistentLinkedListElement<E>> node = head.getRoot();
@@ -600,7 +620,8 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
         return new Pair<>(head.getDeadList().pop(), true);
     }
 
-    private CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> copyLeaf(HeadList<PersistentLinkedListElement<E>> head, int index) {
+    private CopyResult<PersistentLinkedListElement<E>, HeadList<PersistentLinkedListElement<E>>> copyLeaf(
+            HeadList<PersistentLinkedListElement<E>> head, int index) {
         if (isFull()) {
             throw new IllegalStateException(FULL_LIST_MESSAGE);
         }
@@ -641,13 +662,6 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
         }
     }
 
-    /**
-     * Возвращает строковое представление содержимого списка.
-     * Строковое представление состоит из списка элементов списка, заключенного в квадратные скобки («[]»).
-     * Смежные элементы разделяются символами «, » (запятая с последующим пробелом).
-     *
-     * @return строковое представление списка
-     */
     @Override
     public String toString() {
         return toString(getCurrentHead());
@@ -661,16 +675,6 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
         }
     }
 
-    /**
-     * Возвращает массив, содержащий все элементы этого списка в правильной последовательности (от первого до последнего элемента).
-     * <p>
-     * Возвращенный массив будет "безопасным" в том смысле, что этот список не поддерживает никаких ссылок на него.
-     * (Другими словами, этот метод должен выделять новый массив, даже если эта коллекция поддерживается массивом).
-     * Таким образом, вызывающий объект может изменять возвращаемый массив.
-     * </p>
-     *
-     * @return массив, содержащий все элементы этого списка в правильной последовательности
-     */
     @Override
     public Object[] toArray() {
         return toArray(getCurrentHead());
@@ -794,7 +798,6 @@ public class PersistentLinkedList<E> extends AbstractPersistentCollection implem
          * @return следующий элемент в итерации
          */
         @Override
-        @SuppressWarnings("unchecked")
         public T next() {
             T result = (T) current.getValue();
             i++;

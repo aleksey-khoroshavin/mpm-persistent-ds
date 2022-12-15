@@ -1,4 +1,4 @@
-package ru.nsu.fit.mpm.persistent_ds.util.copy_path;
+package ru.nsu.fit.mpm.persistent_ds.list;
 
 import ru.nsu.fit.mpm.persistent_ds.util.node.Node;
 
