@@ -1,7 +1,13 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
 public interface UndoRedo {
-    public void undo();
+    /**
+     * Откат к предыдущей версии
+     */
+    void undo();
 
-    public void redo();
+    /**
+     * Повтор операции изменения
+     */
+    void redo();
 }

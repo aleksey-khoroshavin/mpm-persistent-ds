@@ -4,10 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentLinkedListTest {
     PersistentLinkedList<Integer> persistentLinkedList;
@@ -225,7 +222,7 @@ class PersistentLinkedListTest {
     void testPersistentLinkedListSet() {
         init(3);
         assertEquals("[0, 1, 2]", persistentLinkedList.toString());
-        persistentLinkedList.set(1, -1);
+        assertEquals(1, persistentLinkedList.set(1, -1));
         assertEquals("[0, -1, 2]", persistentLinkedList.toString());
         persistentLinkedList.set(2, -2);
         assertEquals("[0, -1, -2]", persistentLinkedList.toString());

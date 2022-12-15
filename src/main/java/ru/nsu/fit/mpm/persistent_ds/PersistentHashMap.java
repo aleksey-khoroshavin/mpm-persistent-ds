@@ -1,25 +1,17 @@
 package ru.nsu.fit.mpm.persistent_ds;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Stack;
+import java.util.*;
 
 public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRedo {
 
-    private ArrayList<PersistentLinkedList<Pair<K, V>>> table;
+    private final ArrayList<PersistentLinkedList<Pair<K, V>>> table;
     private final int tableMaxSize = 16;
-    private Stack<Integer> redo = new Stack<>();
-    private Stack<Integer> undo = new Stack<>();
+    private final Stack<Integer> redo = new Stack<>();
+    private final Stack<Integer> undo = new Stack<>();
     private PersistentHashMap<?, PersistentHashMap<?, ?>> parent;
     private int countInsertedHM = 0;
-    private Stack<PersistentHashMap<?, ?>> insertedUndo = new Stack<>();
-    private Stack<PersistentHashMap<?, ?>> insertedRedo = new Stack<>();
+    private final Stack<PersistentHashMap<?, ?>> insertedUndo = new Stack<>();
+    private final Stack<PersistentHashMap<?, ?>> insertedRedo = new Stack<>();
 
     public PersistentHashMap() {
         this.table = new ArrayList<>(30);
@@ -214,18 +206,14 @@ public class PersistentHashMap<K, V> extends AbstractMap<K, V> implements UndoRe
         if (value instanceof PersistentHashMap) {
             countInsertedHM++;
             ((PersistentHashMap) value).parent = this;
-            onEvent((PersistentHashMap) value);
+            insertedUndo.push((PersistentHashMap) value);
             redo.clear();
             insertedRedo.clear();
         }
 
         if (parent != null) {
-            parent.onEvent(this);
+            parent.insertedUndo.push(this);
         }
-    }
-
-    private void onEvent(PersistentHashMap<?, ?> persistentHashMap) {
-        insertedUndo.push(persistentHashMap);
     }
 
     static class Pair<K, V> implements Map.Entry<K, V> {

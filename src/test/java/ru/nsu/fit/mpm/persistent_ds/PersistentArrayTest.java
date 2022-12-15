@@ -35,9 +35,7 @@ class PersistentArrayTest {
     @Test
     void testPersistentArrayToArray() {
         addABC();
-        String[] strings = new String[persistentArray.size()];
-        persistentArray.toArray(strings);
-        assertEquals("[A, B, C]", Arrays.toString(strings));
+        assertEquals("[A, B, C]", Arrays.toString(persistentArray.toArray()));
     }
 
     @Test
@@ -174,8 +172,8 @@ class PersistentArrayTest {
     void testPersistentArraySet() {
         addABC();
         assertEquals("[A, B, C]", persistentArray.toString());
-        persistentArray.set(0, "Q");
-        persistentArray.set(1, "W");
+        assertEquals("A", persistentArray.set(0, "Q"));
+        assertEquals("B", persistentArray.set(1, "W"));
         assertEquals("[Q, W, C]", persistentArray.toString());
         persistentArray.undo();
         persistentArray.undo();
@@ -268,22 +266,18 @@ class PersistentArrayTest {
     void testPersistentArrayRemove() {
         addABC(3, 1);
 
-        assertEquals(3, persistentArray.calcUniqueLeafs());
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(-1));
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(3));
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(999));
 
         assertEquals("B", persistentArray.remove(1));
         assertEquals("[A, C]", persistentArray.toString());
-        assertEquals(4, persistentArray.calcUniqueLeafs());
 
         assertEquals("C", persistentArray.remove(1));
         assertEquals("[A]", persistentArray.toString());
-        assertEquals(5, persistentArray.calcUniqueLeafs());
 
         assertEquals("A", persistentArray.remove(0));
         assertEquals("[]", persistentArray.toString());
-        assertEquals(5, persistentArray.calcUniqueLeafs());
         assertThrows(IndexOutOfBoundsException.class, () -> persistentArray.remove(0));
     }
 
@@ -294,16 +288,6 @@ class PersistentArrayTest {
         assertEquals("[]", persistentArray.toString());
         persistentArray.undo();
         assertEquals("[A, B, C]", persistentArray.toString());
-    }
-
-    @Test
-    void testPersistentArrayUniqueLeafs() {
-        persistentArray = new PersistentArray<>(3, 1);
-        assertEquals(0, persistentArray.calcUniqueLeafs());
-        persistentArray.add("A");
-        assertEquals(1, persistentArray.calcUniqueLeafs());
-        persistentArray.add("B");
-        assertEquals(2, persistentArray.calcUniqueLeafs());
     }
 
     @Test
