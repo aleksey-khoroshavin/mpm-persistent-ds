@@ -17,3 +17,8 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+javadoc {
+    options.addStringOption('charset', 'UTF-8')
+    options.addStringOption('encoding', 'UTF-8')
+}
