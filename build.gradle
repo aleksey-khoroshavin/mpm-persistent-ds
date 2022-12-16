@@ -21,4 +21,5 @@ test {
 javadoc {
     options.addStringOption('charset', 'UTF-8')
     options.addStringOption('encoding', 'UTF-8')
+    exclude 'ru/nsu/fit/mpm/persistent_ds/Main.java'
 }
