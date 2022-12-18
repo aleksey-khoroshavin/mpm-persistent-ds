@@ -5,20 +5,10 @@ import ru.nsu.fit.mpm.persistent_ds.collection.AbstractPersistentCollection;
 import ru.nsu.fit.mpm.persistent_ds.util.head.HeadArray;
 import ru.nsu.fit.mpm.persistent_ds.util.node.Node;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.NoSuchElementException;
-import java.util.Stack;
+import java.util.*;
 
 /**
  * Персистентный массив
- *
- * @param <E>
  */
 public class PersistentArray<E> extends AbstractPersistentCollection implements List<E> {
 
@@ -40,15 +30,15 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
         this((int) Math.ceil(log(maxSize, (int) Math.pow(2, 5))), 5);
     }
 
-    public PersistentArray(int depth, int bitPerNode) {
-        super(depth, bitPerNode);
+    public PersistentArray(int depth, int bitPerEdge) {
+        super(depth, bitPerEdge);
         HeadArray<E> head = new HeadArray<>();
         undo.push(head);
         redo.clear();
     }
 
     public PersistentArray(PersistentArray<E> other) {
-        super(other.depth, other.bitPerNode);
+        super(other.depth, other.bitPerEdge);
         this.undo.addAll(other.undo);
         this.redo.addAll(other.redo);
     }
@@ -259,7 +249,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
 
         head.setSize(head.getSize() + 1);
         Node<E> currentNode = head.getRoot();
-        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
+        for (int level = bitPerEdge * (depth - 1); level > 0; level -= bitPerEdge) {
             int widthIndex = ((head.getSize() - 1) >> level) & mask;
             Node<E> tmp;
             Node<E> newNode;
@@ -302,7 +292,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
         redo.clear();
         LinkedList<Pair<Node<E>, Integer>> path = new LinkedList<>();
         path.add(new Pair<>(newHead.getRoot(), 0));
-        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
+        for (int level = bitPerEdge * (depth - 1); level > 0; level -= bitPerEdge) {
             int index = (newHead.getSize() >> level) & mask;
             Node<E> tmp;
             Node<E> newNode;
@@ -385,7 +375,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
         redo.clear();
 
         Node<E> currentNode = newHead.getRoot();
-        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
+        for (int level = bitPerEdge * (depth - 1); level > 0; level -= bitPerEdge) {
             int widthIndex = (index >> level) & mask;
             Node<E> tmp;
             Node<E> newNode;
@@ -399,14 +389,14 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
     }
 
     private Pair<Node<E>, Integer> copyLeafToMove(HeadArray<E> oldHead, int index) {
-        int level = bitPerNode * (depth - 1);
+        int level = bitPerEdge * (depth - 1);
         HeadArray<E> newHead = new HeadArray<>(oldHead, index + 1, (index >> level) & mask);
         undo.push(newHead);
         redo.clear();
         Node<E> currentNode = newHead.getRoot();
-        for (; level > 0; level -= bitPerNode) {
+        for (; level > 0; level -= bitPerEdge) {
             int widthIndex = (index >> level) & mask;
-            int widthIndexNext = (index >> (level - bitPerNode)) & mask;
+            int widthIndexNext = (index >> (level - bitPerEdge)) & mask;
             Node<E> tmp;
             Node<E> newNode;
             tmp = currentNode.getChild().get(widthIndex);
@@ -438,7 +428,7 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
         checkIndex(head, index);
 
         Node<E> node = head.getRoot();
-        for (int level = bitPerNode * (depth - 1); level > 0; level -= bitPerNode) {
+        for (int level = bitPerEdge * (depth - 1); level > 0; level -= bitPerEdge) {
             int widthIndex = (index >> level) & mask;
             node = node.getChild().get(widthIndex);
         }
@@ -450,6 +440,14 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
         return getCurrentHead().getRoot().drawGraph();
     }
 
+    /**
+     * Возвращает строковое представление содержимого массива.
+     * <p>
+     * Строковое представление состоит из списка элементов этого персистентного массива, заключенного в квадратные скобки («[]»).
+     * Смежные элементы разделяются символами «, » (запятая с последующим пробелом).
+     *
+     * @return строковое представление массива
+     */
     @Override
     public String toString() {
         return toString(getCurrentHead());
@@ -459,6 +457,11 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
         return Arrays.toString(toArray(head));
     }
 
+    /**
+     * Возвращает массив, содержащий все элементы этого персистентного массива в правильной последовательности (от первого до последнего элемента).
+     *
+     * @return массив, содержащий все элементы этого персистентного массива в правильной последовательности
+     */
     @Override
     public Object[] toArray() {
         return toArray(getCurrentHead());
@@ -542,6 +545,9 @@ public class PersistentArray<E> extends AbstractPersistentCollection implements 
         return new PersistentArrayIterator<>();
     }
 
+    /**
+     * Итератор над персистентным массивом.
+     */
     public class PersistentArrayIterator<T> implements java.util.Iterator<T> {
         int index = 0;
 

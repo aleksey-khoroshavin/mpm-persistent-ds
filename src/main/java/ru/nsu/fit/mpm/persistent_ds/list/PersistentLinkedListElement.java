@@ -1,5 +1,8 @@
 package ru.nsu.fit.mpm.persistent_ds.list;
 
+/**
+ * Элемент персистентного двусвязного списка
+ */
 public class PersistentLinkedListElement<E> {
     private int next;
     private int prev;
