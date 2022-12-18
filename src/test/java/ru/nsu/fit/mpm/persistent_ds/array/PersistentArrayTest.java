@@ -5,10 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentArrayTest {
     PersistentArray<String> persistentArray;
@@ -20,8 +17,8 @@ class PersistentArrayTest {
         persistentArray.add("C");
     }
 
-    private void addABC(int depth, int bitPerNode) {
-        persistentArray = new PersistentArray<>(depth, bitPerNode);
+    private void addABC(int depth, int bitPerEdge) {
+        persistentArray = new PersistentArray<>(depth, bitPerEdge);
         persistentArray.add("A");
         persistentArray.add("B");
         persistentArray.add("C");
@@ -291,13 +288,5 @@ class PersistentArrayTest {
         assertEquals("[]", persistentArray.toString());
         persistentArray.undo();
         assertEquals("[A, B, C]", persistentArray.toString());
-    }
-
-    @Test
-    void testPersistentArrayPop2() {
-        addABC(3, 1);
-        assertEquals("C", persistentArray.pop());
-        assertEquals("B", persistentArray.pop());
-        assertEquals("A", persistentArray.pop());
     }
 }

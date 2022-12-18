@@ -5,9 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashSet;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentHashMapTest {
     PersistentHashMap<String, Integer> persistentHashMap = new PersistentHashMap<>();
@@ -183,7 +181,7 @@ class PersistentHashMapTest {
         assertTrue(persistentHashMap.toString().contains("A=1"));
         assertTrue(persistentHashMap.toString().contains("B=2"));
         assertTrue(persistentHashMap.toString().contains("C=3"));
-        assertEquals(13, persistentHashMap.toString().length());
+        assertEquals(15, persistentHashMap.toString().length());
     }
 
     @Test

@@ -4,10 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Iterator;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class PersistentLinkedListTest {
     PersistentLinkedList<Integer> persistentLinkedList;
@@ -17,8 +14,8 @@ class PersistentLinkedListTest {
         fill(fillSize);
     }
 
-    private void init(int fillSize, int depth, int bitPerNode) {
-        persistentLinkedList = new PersistentLinkedList<>(depth, bitPerNode);
+    private void init(int fillSize, int depth, int bitPerEdge) {
+        persistentLinkedList = new PersistentLinkedList<>(depth, bitPerEdge);
         fill(fillSize);
     }
 

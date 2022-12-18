@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Узел B-дерева для персистентной коллекции
+ */
 public class Node<E> {
     private List<Node<E>> child;
     private List<E> value;
@@ -41,41 +44,69 @@ public class Node<E> {
         }
     }
 
+    /**
+     * Возвращает список потомков этого узла.
+     *
+     * @return список потомков этого узла
+     */
     public List<Node<E>> getChild() {
         return child;
     }
 
+    /**
+     * Устанавливает список потомков этому узлу.
+     *
+     * @param child список потомков
+     */
     public void setChild(List<Node<E>> child) {
         this.child = child;
     }
 
+    /**
+     * Возвращает список значений этого узла.
+     *
+     * @return список значений этого узла.
+     */
     public List<E> getValue() {
         return value;
     }
 
+    /**
+     * Устанавливает список значений этому узлу.
+     *
+     * @param value список значений
+     */
     public void setValue(List<E> value) {
         this.value = value;
     }
 
-    @Override
-    public String toString() {
-        String childNodes = child == null ? "[child null]" : Arrays.toString(child.toArray());
-        String values = value == null ? "[value null]" : Arrays.toString(value.toArray());
-        return String.format("%09x %s %s", hashCode(), childNodes, values);
-    }
-
+    /**
+     * Возвращает true, если узел не имеет потомков и не содержит значений.
+     *
+     * @return true, если узел не имеет потомков и не содержит значений
+     */
     public boolean isEmpty() {
         if ((child == null) && (value == null)) {
             return true;
         }
 
-        boolean result = (child == null) || (child.isEmpty());
-
         if ((value != null) && (!value.isEmpty())) {
-            result = false;
+            return false;
         }
 
-        return result;
+        return (child == null) || (child.isEmpty());
+    }
+
+    /**
+     * Возвращает строковое представление содержимого узла.
+     *
+     * @return строковое представление содержимого узла
+     */
+    @Override
+    public String toString() {
+        String childNodes = child == null ? "[child null]" : Arrays.toString(child.toArray());
+        String values = value == null ? "[value null]" : Arrays.toString(value.toArray());
+        return String.format("%09x %s %s", hashCode(), childNodes, values);
     }
 
     private String drawTab(int count) {

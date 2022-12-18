@@ -5,21 +5,19 @@ package ru.nsu.fit.mpm.persistent_ds.collection;
  */
 public abstract class AbstractPersistentCollection implements UndoRedoCollection {
     public final int depth;
-    public final int bitPerLevel;
     public final int mask;
     public final int maxSize;
-    public final int bitPerNode;
+    public final int bitPerEdge;
     public final int width;
 
-    protected AbstractPersistentCollection(int depth, int bitPerNode) {
+    protected AbstractPersistentCollection(int depth, int bitPerEdge) {
         this.depth = depth;
-        this.bitPerNode = bitPerNode;
+        this.bitPerEdge = bitPerEdge;
 
-        bitPerLevel = bitPerNode * depth;
-        mask = (int) Math.pow(2, bitPerNode) - 1;
-        maxSize = (int) Math.pow(2, bitPerLevel);
+        mask = (int) Math.pow(2, bitPerEdge) - 1;
+        maxSize = (int) Math.pow(2, bitPerEdge * depth);
 
-        width = (int) Math.pow(2, bitPerNode);
+        width = (int) Math.pow(2, bitPerEdge);
     }
 
     protected static double log(int n, int newBase) {
